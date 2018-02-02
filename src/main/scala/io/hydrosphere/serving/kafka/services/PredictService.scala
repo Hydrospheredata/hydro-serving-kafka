@@ -47,8 +47,8 @@ trait PredictService {
 
     stages match {
       case Nil => result
-      case head :: Nil => result
-      case head :: tail => predictRec(toFutureRequest(result, tail.head.signature.get), tail)
+      case head :: Nil => predictRec(toFutureRequest(result, ModelSignature()), Nil) //TODO ModelSignature should be option
+      case head :: tail => predictRec(toFutureRequest(result, head.signature.get), tail)
     }
   }
 

@@ -24,50 +24,50 @@ class PredictServiceSpec
 
   val input = Map[String, TensorProto](("key", TensorProto()))
 
-//  "PredictService" should "return successful response for one stage" in {
-//
-//    val stages:Seq[ExecutionStage] = ExecutionStage("key1", Some(signature("success"))) :: Nil
-//    val predictor = new PredictServiceStub(stages)
-//
-//    val response = predictor.predictByGraph(new PredictRequest(
-//      Some(ModelSpec()),
-//      input
-//    ))
-//
-//    Await.result(response, 1 second).outputs shouldBe input
-//  }
-//
-//  "PredictService" should "return successful response for several stage" in {
-//
-//    val stages:Seq[ExecutionStage] = ExecutionStage("key1", Some(signature("success"))) ::
-//      ExecutionStage("key2", Some(signature("success"))) ::
-//      ExecutionStage("key3", Some(signature("success"))) :: Nil
-//    val predictor = new PredictServiceStub(stages)
-//
-//    val response = predictor.predictByGraph(new PredictRequest(
-//      Some(ModelSpec()),
-//      input
-//    ))
-//
-//    Await.result(response, 1 second).outputs shouldBe input
-//  }
-//
-//  "PredictService" should "return exception response for one stage" in {
-//
-//    val stages:Seq[ExecutionStage] = ExecutionStage("key1", Some(signature("failure"))) :: Nil
-//    val predictor = new PredictServiceStub(stages)
-//
-//    val response = predictor.predictByGraph(new PredictRequest(
-//      Some(ModelSpec()),
-//      input
-//    ))
-//
-//    val withFallBack = response
-//      .map(Success(_))
-//      .recover { case e:Exception => Failure[PredictResponse](e) }
-//
-//    Await.result(withFallBack, 1 second).isFailure shouldBe true
-//  }
+  "PredictService" should "return successful response for one stage" in {
+
+    val stages:Seq[ExecutionStage] = ExecutionStage("key1", Some(signature("success"))) :: Nil
+    val predictor = new PredictServiceStub(stages)
+
+    val response = predictor.predictByGraph(new PredictRequest(
+      Some(ModelSpec()),
+      input
+    ))
+
+    Await.result(response, 1 second).outputs shouldBe input
+  }
+
+  "PredictService" should "return successful response for several stage" in {
+
+    val stages:Seq[ExecutionStage] = ExecutionStage("key1", Some(signature("success"))) ::
+      ExecutionStage("key2", Some(signature("success"))) ::
+      ExecutionStage("key3", Some(signature("success"))) :: Nil
+    val predictor = new PredictServiceStub(stages)
+
+    val response = predictor.predictByGraph(new PredictRequest(
+      Some(ModelSpec()),
+      input
+    ))
+
+    Await.result(response, 1 second).outputs shouldBe input
+  }
+
+  "PredictService" should "return exception response for one stage" in {
+
+    val stages:Seq[ExecutionStage] = ExecutionStage("key1", Some(signature("failure"))) :: Nil
+    val predictor = new PredictServiceStub(stages)
+
+    val response = predictor.predictByGraph(new PredictRequest(
+      Some(ModelSpec()),
+      input
+    ))
+
+    val withFallBack = response
+      .map(Success(_))
+      .recover { case e:Exception => Failure[PredictResponse](e) }
+
+    Await.result(withFallBack, 1 second).isFailure shouldBe true
+  }
 
   "PredictService" should "return exception response for several stage" in {
 
