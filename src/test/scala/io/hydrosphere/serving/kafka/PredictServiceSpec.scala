@@ -1,7 +1,7 @@
 package io.hydrosphere.serving.kafka
 
 import io.hydrosphere.serving.contract.model_signature.ModelSignature
-import io.hydrosphere.serving.kafka.services.PredictService
+import io.hydrosphere.serving.kafka.predict.PredictService
 import io.hydrosphere.serving.manager.grpc.applications.{ExecutionGraph, ExecutionStage}
 import io.hydrosphere.serving.tensorflow.api.model.ModelSpec
 import io.hydrosphere.serving.tensorflow.api.predict.{PredictRequest, PredictResponse}
@@ -12,13 +12,12 @@ import scala.concurrent.Future
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.global
 import scala.concurrent.duration._
-import scala.util.{Failure, Success}
 
 class PredictServiceSpec
   extends FlatSpec
   with Matchers {
 
-  implicit val ecevutionContext = global
+  implicit val ececutionContext = global
 
   def signature(key:String) = ModelSignature(key)
 
@@ -32,9 +31,12 @@ class PredictServiceSpec
     val response = predictor.predictByGraph(new PredictRequest(
       Some(ModelSpec()),
       input
-    ))
+    ), ExecutionGraph(stages))
 
-    Await.result(response, 1 second).outputs shouldBe input
+    val result = predictor.report(response)
+
+    Await.result(result, 1 second).requestOrError.isRequest shouldBe true
+    Await.result(result, 1 second).requestOrError.request.get.inputs shouldBe input
   }
 
   "PredictService" should "return successful response for several stage" in {
@@ -44,12 +46,15 @@ class PredictServiceSpec
       ExecutionStage("key3", Some(signature("success"))) :: Nil
     val predictor = new PredictServiceStub(stages)
 
-    val response = predictor.predictByGraph(new PredictRequest(
+    val response = predictor.predictByGraph(PredictRequest(
       Some(ModelSpec()),
       input
-    ))
+    ), ExecutionGraph(stages))
 
-    Await.result(response, 1 second).outputs shouldBe input
+    val result = predictor.report(response)
+
+    Await.result(result, 1 second).requestOrError.isRequest shouldBe true
+    Await.result(result, 1 second).requestOrError.request.get.inputs shouldBe input
   }
 
   "PredictService" should "return exception response for one stage" in {
@@ -60,13 +65,12 @@ class PredictServiceSpec
     val response = predictor.predictByGraph(new PredictRequest(
       Some(ModelSpec()),
       input
-    ))
+    ), ExecutionGraph(stages))
 
-    val withFallBack = response
-      .map(Success(_))
-      .recover { case e:Exception => Failure[PredictResponse](e) }
+    val result = predictor.report(response)
 
-    Await.result(withFallBack, 1 second).isFailure shouldBe true
+
+    Await.result(result, 1 second).requestOrError.isError shouldBe true
   }
 
   "PredictService" should "return exception response for several stage" in {
@@ -80,13 +84,11 @@ class PredictServiceSpec
     val response = predictor.predictByGraph(new PredictRequest(
       Some(ModelSpec()),
       input
-    ))
+    ), ExecutionGraph(stages))
 
-    val withFallBack = response
-      .map(Success(_))
-      .recover { case e:Exception => Failure[PredictResponse](e) }
+    val result = predictor.report(response)
 
-    Await.result(withFallBack, 1 second).isFailure shouldBe true
+    Await.result(result, 1 second).requestOrError.isError shouldBe true
   }
 
   class PredictServiceStub(stages: Seq[ExecutionStage]) extends PredictService {
@@ -99,7 +101,6 @@ class PredictServiceSpec
         )
       )
     }
-    override def getExecutionGraph(modelSpec: ModelSpec): ExecutionGraph = ExecutionGraph(stages)
 
   }
 

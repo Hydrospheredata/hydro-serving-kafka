@@ -1,17 +1,18 @@
-package io.hydrosphere.serving.kafka.it
+package io.hydrosphere.serving.kafka.it.infrostructure
 
+import java.util.concurrent.TimeUnit
 
 import com.spotify.docker.client.DockerClient.ExecStartParameter
 import com.spotify.docker.client.{DefaultDockerClient, DockerClient}
-import com.whisk.docker.{DockerContainer, DockerFactory, DockerKit, DockerReadyChecker}
 import com.whisk.docker.impl.spotify.SpotifyDockerFactory
-import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, Suite}
+import com.whisk.docker.{DockerContainer, DockerFactory, DockerKit, DockerReadyChecker}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
+import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, Suite}
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.duration._
 import scala.concurrent.Await
+import scala.concurrent.duration._
 
 trait KafkaContainer
   extends BeforeAndAfter
@@ -91,12 +92,14 @@ trait KafkaContainer
     val cmd = s"$path/kafka-server-stop.sh"
     log.info("stopping kafka")
     exec(containerName(), cmd)
+    TimeUnit.SECONDS.sleep(2)
   }
 
   def startKafka(): Unit ={
     val cmd = s" $path/kafka-server-start.sh /opt/kafka_2.11-0.10.1.0/config/server.properties"
     log.info("starting kafka")
     exec(containerName(), cmd)
+    TimeUnit.SECONDS.sleep(2)
   }
 
   def stopZookeeper(): Unit ={

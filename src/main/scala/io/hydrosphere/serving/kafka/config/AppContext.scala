@@ -1,15 +1,19 @@
 package io.hydrosphere.serving.kafka.config
 
-import com.typesafe.config.ConfigFactory
-import io.hydrosphere.serving.kafka.services.KafkaServing
+import io.hydrosphere.serving.kafka.kafka_messages.KafkaServingMessage
+import io.hydrosphere.serving.kafka.predict.PredictService
+import io.hydrosphere.serving.kafka.stream.KafkaStreamer
 
-final case class AppContext(config:Configuration, kafkaServing:KafkaServing)
+final case class Context(config:Configuration,
+                         kafkaServing:KafkaStreamer[Array[Byte], KafkaServingMessage],
+                         predictService: PredictService)
 
 object AppContext {
 
-  def apply(): AppContext = {
-    val appConfig = Configuration(ConfigFactory.load())
-    new AppContext(appConfig, KafkaServing)
-  }
+  def apply()(implicit config:Configuration,
+            kafkaServing:KafkaStreamer[Array[Byte], KafkaServingMessage],
+            predictService: PredictService) = Context(config,
+    kafkaServing,
+    predictService)
 
 }

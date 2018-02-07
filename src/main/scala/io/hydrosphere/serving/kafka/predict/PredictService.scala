@@ -1,25 +1,28 @@
-package io.hydrosphere.serving.kafka.services
+package io.hydrosphere.serving.kafka.predict
 
 import io.hydrosphere.serving.contract.model_signature.ModelSignature
+import io.hydrosphere.serving.kafka.kafka_messages.{KafkaError, KafkaServingMessage}
 import io.hydrosphere.serving.manager.grpc.applications.{ExecutionGraph, ExecutionStage}
-import io.hydrosphere.serving.tensorflow.api.model.ModelSpec
 import io.hydrosphere.serving.tensorflow.api.predict.{PredictRequest, PredictResponse}
 
 import scala.annotation.tailrec
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-import scala.concurrent.ExecutionContext.global
 
 trait PredictService {
 
+  implicit val executionContext = ExecutionContext.global
+
   def fetchPredict(in: PredictRequest): Future[PredictResponse]
 
-  def getExecutionGraph(modelSpec:ModelSpec):ExecutionGraph
+  def report(future : Future[PredictResponse]):Future[KafkaServingMessage] = future
+    .map(resp => KafkaServingMessage("traceId").withRequest(PredictRequest(inputs = resp.outputs)))
+    .recover {case e: Exception => KafkaServingMessage("traceId").withError(KafkaError())}
 
-  def predictByGraph(request:PredictRequest): Future[PredictResponse] = {
-    getExecutionGraph(request.modelSpec.get).stages match {
+  def predictByGraph(request:PredictRequest, graph: ExecutionGraph): Future[PredictResponse] = {
+    graph.stages match {
       case Nil => Future.failed(new RuntimeException("Should be at least one PredictRequest item"))
-      case head :: tail =>{
+      case head :: tail => {
         val requestWithSignature = request.withModelSpec(
           request.modelSpec.get.withSignatureName(
             head.signature.get.signatureName)
@@ -31,8 +34,6 @@ trait PredictService {
 
   @tailrec
   private def predictRec(prev: Future[PredictRequest], stages: Seq[ExecutionStage]): Future[PredictResponse] = {
-
-    implicit val exec = global
 
     val result = prev.flatMap(fetchPredict(_))
 
@@ -47,7 +48,6 @@ trait PredictService {
 
     stages match {
       case Nil => result
-      case head :: Nil => predictRec(toFutureRequest(result, ModelSignature()), Nil) //TODO ModelSignature should be option
       case head :: tail => predictRec(toFutureRequest(result, head.signature.get), tail)
     }
   }

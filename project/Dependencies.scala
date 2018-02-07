@@ -36,8 +36,8 @@ object Dependencies {
   )
 
 
-  lazy val streamingKafkaDependencies = commonDependencies.map(_.force())
-    .union(dockerDependencies)
+  lazy val streamingKafkaDependencies =
+    dockerDependencies
     .union(hydroserving)
     .union(Seq(
       "org.apache.kafka" %% "kafka" % kafkaApiVersion,
@@ -46,6 +46,7 @@ object Dependencies {
       "com.fasterxml.jackson.core" % "jackson-core" % "2.9.2",
       "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
     )).map(_.exclude("org.slf4j", "slf4j-jdk14"))
+    .union(commonDependencies)
 
 
 
