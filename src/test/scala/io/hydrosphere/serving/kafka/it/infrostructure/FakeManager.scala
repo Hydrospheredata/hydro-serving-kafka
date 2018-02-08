@@ -5,26 +5,38 @@ import io.hydrosphere.serving.tensorflow.api.predict.{PredictRequest, PredictRes
 import io.hydrosphere.serving.tensorflow.api.prediction_service.PredictionServiceGrpc
 import org.apache.logging.log4j.scala.Logging
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future, Promise}
 
 object FakeModel extends Logging {
 
-  def run(): Unit = {
+  def run(port:Int): FakeModel = {
     val server = new FakeModel(ExecutionContext.global)
-    server.start()
+    server.start(port)
     server.blockUntilShutdown()
+    server
   }
 
-  private val port = 50051
+  def runAsync(port:Int) = {
+    val result = Promise[FakeModel]
+    new Thread("fake-model-service"){
+      override def run(): Unit = {
+        val server = new FakeModel(ExecutionContext.global)
+        server.start(port)
+        result.success(server)
+        server.blockUntilShutdown()
+      }
+    }.start()
+    result.future
+  }
 }
 
 class FakeModel (executionContext: ExecutionContext) extends Logging { self =>
 
   private[this] var server: Server = null
 
-  private def start(): Unit = {
-    server = ServerBuilder.forPort(FakeModel.port).addService(PredictionServiceGrpc.bindService(new PredictionService, executionContext)).build.start
-    logger.info("Server started, listening on " + FakeModel.port)
+  private def start(port:Int): Unit = {
+    server = ServerBuilder.forPort(port).addService(PredictionServiceGrpc.bindService(new PredictionService, executionContext)).build.start
+    logger.info("Server started, listening on " + port)
     sys.addShutdownHook {
       System.err.println("*** shutting down gRPC server since JVM is shutting down")
       self.stop()
@@ -32,7 +44,7 @@ class FakeModel (executionContext: ExecutionContext) extends Logging { self =>
     }
   }
 
-  private def stop(): Unit = {
+  def stop(): Unit = {
     if (server != null) {
       server.shutdown()
     }

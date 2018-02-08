@@ -15,7 +15,6 @@ class KafkaStream[K, V](val underlying: KStream[K, V]) extends Stream[K, V] {
     })
   }
 
-
   override def filterV(f: V => Boolean): KafkaStream[K, V] = KafkaStream {
     underlying.filter(new Predicate[K, V] {
       override def test(key: K, value: V): Boolean = f(value)

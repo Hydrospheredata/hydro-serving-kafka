@@ -8,15 +8,13 @@ import com.whisk.docker.impl.spotify.SpotifyDockerFactory
 import com.whisk.docker.{DockerContainer, DockerFactory, DockerKit, DockerReadyChecker}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
-import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, Suite}
+import org.scalatest.{BeforeAndAfterAll, Suite}
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-trait KafkaContainer
-  extends BeforeAndAfter
-    with ScalaFutures
+trait KafkaContainer extends ScalaFutures
     with BeforeAndAfterAll
     with DockerKit {
   self: Suite =>
@@ -31,11 +29,7 @@ trait KafkaContainer
   def dockerPullImagesPatienceInterval =
     PatienceConfig(scaled(Span(1200, Seconds)), scaled(Span(250, Millis)))
 
-  before {
-    for(topic <- topicsList()){
-      topicDelete(topic)
-    }
-  }
+
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()
@@ -49,15 +43,20 @@ trait KafkaContainer
     stopAllQuietly()
   }
 
-  private [KafkaContainer] val path = "/opt/kafka_2.11-0.10.1.0/bin"
-  private[KafkaContainer] val topicScript = s"$path/kafka-topics.sh"
-  private[KafkaContainer] val zookeeperParam = "--zookeeper localhost:2181"
+  private[this] val path = "/opt/kafka_2.11-0.10.1.0/bin"
+  private[this] val topicScript = s"$path/kafka-topics.sh"
+  private[this] val zookeeperParam = "--zookeeper localhost:2181"
 
   def createTopic(topicName: String, partitions: Int = 1, replication: Int = 1): Unit = {
     val cmd = s"$topicScript --create $zookeeperParam " +
       s"--replication-factor $replication --partitions $partitions --topic $topicName"
     exec(containerName(), cmd)
   }
+
+  def deleteTopics(): Unit = for(topic <- topicsList()){
+      topicDelete(topic)
+    }
+
 
   def topicsList(): Seq[String] = {
     val logMessage = exec(containerName(), s"$topicScript --list $zookeeperParam")
