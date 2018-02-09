@@ -9,21 +9,26 @@ import org.apache.kafka.streams.kstream.{ForeachAction, KStream}
 
 import scala.collection.mutable.ListBuffer
 
-class TestProducer(hostAndPort:String, serializer:Class[_], deserializer:Class[_]) {
+class TestProducer[K,V](topic:String = "test", hostAndPort:String = "localhost:9092",
+                        keySerializer:Class[_ <: Serializer[K]],
+                        valSerializer:Class[_ <: Serializer[V]]) {
   val props = new Properties()
   props.put("bootstrap.servers", hostAndPort)
-  props.put("key.serializer", serializer.getName)
-  props.put("value.serializer", deserializer.getName)
+  props.put("key.serializer", keySerializer.getName)
+  props.put("value.serializer", valSerializer.getName)
 
-  val producer = new KafkaProducer[Integer, String](props)
+  val producer = new KafkaProducer[K, V](props)
 
-  def send(key: Integer, message: String) = {
+  def send(key: K, message: V) = {
     val record = new ProducerRecord("test", key, message)
     producer.send(record)
   }
 }
 
-class TestConsumer(hostAndPort:String, name:String, keySerializer:Class[_], valueSerializer:Class[_]) {
+class TestConsumer[K,V](hostAndPort:String,
+                        name:String,
+                        keySerde:Class[_ <: Serde[K]],
+                        valueSerde:Class[_ <: Serde[V]]) {
   val props = initProps()
   val (in, out, failure) = init()
 
@@ -45,41 +50,41 @@ class TestConsumer(hostAndPort:String, name:String, keySerializer:Class[_], valu
     p
   }
 
-  def init(): (ListBuffer[String], ListBuffer[String], ListBuffer[String]) = {
+  def init(): (ListBuffer[V], ListBuffer[V], ListBuffer[V]) = {
 
-    val successCollection = new ListBuffer[String]
-    val failureCollection = new ListBuffer[String]
-    val inCollection = new ListBuffer[String]
+    val successCollection = new ListBuffer[V]
+    val failureCollection = new ListBuffer[V]
+    val inCollection = new ListBuffer[V]
 
     val props = new Properties()
     props.put(StreamsConfig.APPLICATION_ID_CONFIG, "test")
     props.put(StreamsConfig.CLIENT_ID_CONFIG, "test")
     import org.apache.kafka.streams.StreamsConfig
     props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
-    props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, classOf[Serdes.IntegerSerde])
-    props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, classOf[Serdes.StringSerde])
+    props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, keySerde)
+    props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, valueSerde)
 
     import org.apache.kafka.streams.StreamsBuilder
     val builder = new StreamsBuilder()
 
-    val s:KStream[Int,String] = builder.stream("success")
-    val f:KStream[Int,String] = builder.stream("failure")
-    val in:KStream[Int,String] = builder.stream("test")
+    val s:KStream[K,V] = builder.stream("success")
+    val f:KStream[K,V] = builder.stream("failure")
+    val in:KStream[K,V] = builder.stream("test")
 
-    s.foreach(new ForeachAction[Int, String] {
-      override def apply(key: Int, value: String): Unit = {
+    s.foreach(new ForeachAction[K, V] {
+      override def apply(key: K, value: V): Unit = {
         successCollection += value
       }
     })
 
-    f.foreach(new ForeachAction[Int, String] {
-      override def apply(key: Int, value: String): Unit = {
+    f.foreach(new ForeachAction[K, V] {
+      override def apply(key: K, value: V): Unit = {
         failureCollection += value
       }
     })
 
-    in.foreach(new ForeachAction[Int, String] {
-      override def apply(key: Int, value: String): Unit ={
+    in.foreach(new ForeachAction[K, V] {
+      override def apply(key: K, value: V): Unit ={
         inCollection += value
       }
     })

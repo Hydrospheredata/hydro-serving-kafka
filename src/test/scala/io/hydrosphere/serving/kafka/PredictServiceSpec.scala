@@ -33,7 +33,7 @@ class PredictServiceSpec
       input
     ), ExecutionGraph(stages))
 
-    val result = predictor.report(response)
+    val result = predictor.report("traceId", response)
 
     Await.result(result, 1 second).requestOrError.isRequest shouldBe true
     Await.result(result, 1 second).requestOrError.request.get.inputs shouldBe input
@@ -51,7 +51,7 @@ class PredictServiceSpec
       input
     ), ExecutionGraph(stages))
 
-    val result = predictor.report(response)
+    val result = predictor.report("traceId", response)
 
     Await.result(result, 1 second).requestOrError.isRequest shouldBe true
     Await.result(result, 1 second).requestOrError.request.get.inputs shouldBe input
@@ -67,7 +67,7 @@ class PredictServiceSpec
       input
     ), ExecutionGraph(stages))
 
-    val result = predictor.report(response)
+    val result = predictor.report("traceId", response)
 
 
     Await.result(result, 1 second).requestOrError.isError shouldBe true
@@ -86,7 +86,7 @@ class PredictServiceSpec
       input
     ), ExecutionGraph(stages))
 
-    val result = predictor.report(response)
+    val result = predictor.report("traceId", response)
 
     Await.result(result, 1 second).requestOrError.isError shouldBe true
   }

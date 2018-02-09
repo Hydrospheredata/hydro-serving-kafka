@@ -15,9 +15,11 @@ trait PredictService {
 
   def fetchPredict(in: PredictRequest): Future[PredictResponse]
 
-  def report(future : Future[PredictResponse]):Future[KafkaServingMessage] = future
-    .map(resp => KafkaServingMessage("traceId").withRequest(PredictRequest(inputs = resp.outputs)))
-    .recover {case e: Exception => KafkaServingMessage("traceId").withError(KafkaError())}
+  def report(traceId:String, future : Future[PredictResponse]):Future[KafkaServingMessage] = future
+    .map(resp => KafkaServingMessage(traceId).withRequest(PredictRequest(inputs = resp.outputs)))
+    .recover {case e: Exception => KafkaServingMessage(traceId).withError(KafkaError(
+      errorMessage = e.getMessage
+    ))}
 
   def predictByGraph(request:PredictRequest, graph: ExecutionGraph): Future[PredictResponse] = {
     graph.stages match {

@@ -65,9 +65,9 @@ object Flow extends Logging {
 
       appAndStream._2
         .filterV(_.requestOrError.isRequest)
-        .mapV(message => PredictRequest(Some(appAndStream._1.modelSpec), message.requestOrError.request.get.inputs))
-        .mapV(predictor.predictByGraph(_, app.executionGraph))
-        .mapAsync(predictor.report(_))
+        .mapV(message => (message.traceId, PredictRequest(Some(appAndStream._1.modelSpec), message.requestOrError.request.get.inputs)))
+        .mapV(message => (message._1, predictor.predictByGraph(message._2, app.executionGraph)))
+        .mapAsync(value => predictor.report(value._1, value._2))
         .branchV(_.requestOrError.isRequest, _.requestOrError.isError)
     }
 

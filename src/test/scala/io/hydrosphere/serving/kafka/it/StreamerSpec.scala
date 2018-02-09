@@ -37,7 +37,10 @@ class StreamerSpec extends FlatSpec
       KafkaConfiguration("localhost", 9092)
     )
 
-    val consumer = new TestConsumer("localhost:9092", "test_1", classOf[IntegerDeserializer], classOf[StringDeserializer])
+    val consumer = new TestConsumer("localhost:9092",
+      "test_1",
+      Serdes.Integer().getClass,
+      Serdes.String().getClass)
 
     implicit val appService = new ApplicationService {
       override def getApplications(): Seq[Application] = ???
@@ -63,7 +66,9 @@ class StreamerSpec extends FlatSpec
     new Thread(new Runnable {
       override def run(): Unit = {
 
-        val producer = new TestProducer("localhost:9092", classOf[IntegerSerializer], classOf[StringSerializer])
+          val producer = new TestProducer[Integer, String](hostAndPort = "localhost:9092",
+            keySerializer = classOf[IntegerSerializer],
+            valSerializer = classOf[StringSerializer])
 
         Array(producer.send(1, "success_1"),
           producer.send(2, "success_2"),

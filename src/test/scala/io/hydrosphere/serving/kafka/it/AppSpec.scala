@@ -1,16 +1,23 @@
 package io.hydrosphere.serving.kafka.it
 
+import java.util.concurrent.TimeUnit
+
 import io.grpc.ManagedChannelBuilder
+import io.hydrosphere.serving.contract.model_signature.ModelSignature
 import io.hydrosphere.serving.kafka.Flow
 import io.hydrosphere.serving.kafka.config._
-import io.hydrosphere.serving.kafka.it.infrostructure.{FakeModel, KafkaContainer, TestProducer}
+import io.hydrosphere.serving.kafka.it.infrostructure.{FakeModel, KafkaContainer, TestConsumer, TestProducer}
 import io.hydrosphere.serving.kafka.kafka_messages.KafkaServingMessage
-import io.hydrosphere.serving.kafka.mappers.KafkaServingMessageSerde
+import io.hydrosphere.serving.kafka.kafka_messages.KafkaServingMessage.RequestOrError
+import io.hydrosphere.serving.kafka.mappers.{KafkaServingMessageDeserializer, KafkaServingMessageSerde, KafkaServingMessageSerializer}
 import io.hydrosphere.serving.kafka.predict.{Application, ApplicationService, PredictService, PredictServiceImpl}
 import io.hydrosphere.serving.kafka.stream.KafkaStreamer
 import io.hydrosphere.serving.manager.grpc.applications.{ExecutionGraph, ExecutionStage, KafkaStreaming}
 import io.hydrosphere.serving.tensorflow.api.model.ModelSpec
-import org.apache.kafka.common.serialization.Serdes
+import io.hydrosphere.serving.tensorflow.api.predict.PredictRequest
+import io.hydrosphere.serving.tensorflow.tensor.TensorProto
+import io.hydrosphere.serving.tensorflow.types.DataType
+import org.apache.kafka.common.serialization._
 import org.scalatest.{BeforeAndAfter, FlatSpec, Matchers, Suite}
 
 import scala.concurrent.{Await, Future}
@@ -50,15 +57,17 @@ class AppSpec extends FlatSpec
           Some("test"),
           Some("success"),
           Some("failure"),
-          ModelSpec(),
-          ExecutionGraph(Seq(ExecutionStage())))
+          ModelSpec(), ExecutionGraph(Seq(executionGraph(1), executionGraph(2), executionGraph(3))))
       )
     }
 
     implicit val streamer = new KafkaStreamer[Array[Byte], KafkaServingMessage](Serdes.ByteArray().getClass, classOf[KafkaServingMessageSerde])
-    implicit val modelChanel = ManagedChannelBuilder.forAddress("localhost", 56786).usePlaintext(true).build
+    implicit val modelChanel = ManagedChannelBuilder.forAddress("localhost", 56787).usePlaintext(true).build
 
     implicit val predictService: PredictService = new PredictServiceImpl
+
+    val consumer = new TestConsumer[Array[Byte], KafkaServingMessage]("localhost:9092", "test_1", Serdes.ByteArray().getClass,
+      classOf[KafkaServingMessageSerde])
 
     new Thread("flow-thread"){
       override def run(): Unit = {
@@ -66,8 +75,32 @@ class AppSpec extends FlatSpec
       }
     }.start()
 
-    new TestProducer()
+    val producer = new TestProducer[Integer, KafkaServingMessage](
+      keySerializer = classOf[IntegerSerializer],
+      valSerializer = classOf[KafkaServingMessageSerializer])
 
+    Range(0, 10).foreach { i =>
+      producer.send(i, message(i))
+    }
+
+    TimeUnit.SECONDS.sleep(5)
+
+    consumer.out.size shouldBe(10)
+  }
+
+     def executionGraph(num:Int) = (ExecutionStage(
+       stageId = s"stage$num",
+       signature = Some(ModelSignature(
+         signatureName = s"Signature$num"
+       ))
+     ))
+
+  def message(num: Int): KafkaServingMessage = {
+
+    val proto = TensorProto(dtype = DataType.DT_DOUBLE, doubleVal = Seq(num), versionNumber = num)
+    val req = PredictRequest(inputs = Map("VeryImportantnKey" -> proto))
+
+    KafkaServingMessage(traceId = s"traceId_$num", requestOrError = RequestOrError.Request(req))
 
   }
 

@@ -11,7 +11,9 @@ import scala.concurrent.Future
 class PredictServiceImpl(implicit channel: ManagedChannel) extends PredictService {
 
   private[this] val stub = PredictionServiceGrpc.stub(channel)
-  override def fetchPredict(in: PredictRequest): Future[PredictResponse] = stub.predict(in)
+  override def fetchPredict(in: PredictRequest): Future[PredictResponse] = {
+    stub.predict(in)
+  }
 
   def close(): Unit = {
     channel.shutdown.awaitTermination(5, TimeUnit.SECONDS)
