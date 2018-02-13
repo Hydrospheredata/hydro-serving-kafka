@@ -17,7 +17,7 @@ object Dependencies {
   lazy val hydroserving = Seq(
     "io.hydrosphere" %% "serving-grpc-scala" % servingGrpcScala,
     "io.hydrosphere" %% "envoy-data-plane-api" % "v1.5.0_1"
-  )
+  ).map(_.exclude("org.slf4j", "slf4j-jdk14"))
 
 
   lazy val commonDependencies = logDependencies
@@ -25,15 +25,12 @@ object Dependencies {
       "com.typesafe" % "config" % "1.3.2",
       "org.typelevel" %% "cats-core" % "1.0.1"
     ))
-    //akkaDependencies
-    //.union(akkaHttpDependencies)
-   // .union(logDependencies)
 
   lazy val dockerDependencies = Seq(
     "com.whisk" %% "docker-testkit-scalatest" % "0.9.5" % Test,
     "com.whisk" %% "docker-testkit-impl-spotify" % "0.9.5" % Test,
     "com.spotify" % "docker-client" % "8.10.0"
-  )
+  ).map(_.exclude("org.slf4j", "slf4j-jdk14"))
 
 
   lazy val streamingKafkaDependencies =
@@ -42,6 +39,7 @@ object Dependencies {
     .union(Seq(
       "org.apache.kafka" %% "kafka" % kafkaApiVersion,
       "org.apache.kafka" % "kafka-clients" % kafkaApiVersion % Test,
+      "io.hydrosphere" %% "envoy-data-plane-api" % "v1.5.0_1",
       "org.apache.kafka" % "kafka-streams" % kafkaApiVersion,
       "com.fasterxml.jackson.core" % "jackson-core" % "2.9.2",
       "org.scalatest" %% "scalatest" % scalaTestVersion % "test"

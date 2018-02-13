@@ -28,9 +28,8 @@ class PredictServiceSpec
     val stages:Seq[ExecutionStage] = ExecutionStage("key1", Some(signature("success"))) :: Nil
     val predictor = new PredictServiceStub(stages)
 
-    val response = predictor.predictByGraph(new PredictRequest(
-      Some(ModelSpec()),
-      input
+    val response = predictor.predictByGraph("SomeApp", new PredictRequest(
+      inputs = input
     ), ExecutionGraph(stages))
 
     val result = predictor.report("traceId", response)
@@ -46,9 +45,8 @@ class PredictServiceSpec
       ExecutionStage("key3", Some(signature("success"))) :: Nil
     val predictor = new PredictServiceStub(stages)
 
-    val response = predictor.predictByGraph(PredictRequest(
-      Some(ModelSpec()),
-      input
+    val response = predictor.predictByGraph("SomeApp", new PredictRequest(
+      inputs = input
     ), ExecutionGraph(stages))
 
     val result = predictor.report("traceId", response)
@@ -62,9 +60,8 @@ class PredictServiceSpec
     val stages:Seq[ExecutionStage] = ExecutionStage("key1", Some(signature("failure"))) :: Nil
     val predictor = new PredictServiceStub(stages)
 
-    val response = predictor.predictByGraph(new PredictRequest(
-      Some(ModelSpec()),
-      input
+    val response = predictor.predictByGraph("SomeApp", new PredictRequest(
+      inputs = input
     ), ExecutionGraph(stages))
 
     val result = predictor.report("traceId", response)
@@ -81,9 +78,8 @@ class PredictServiceSpec
 
     val predictor = new PredictServiceStub(stages)
 
-    val response = predictor.predictByGraph(new PredictRequest(
-      Some(ModelSpec()),
-      input
+    val response = predictor.predictByGraph("SomeApp", new PredictRequest(
+      inputs = input
     ), ExecutionGraph(stages))
 
     val result = predictor.report("traceId", response)

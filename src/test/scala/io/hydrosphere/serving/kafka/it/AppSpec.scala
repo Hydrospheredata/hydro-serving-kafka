@@ -10,7 +10,7 @@ import io.hydrosphere.serving.kafka.it.infrostructure.{FakeModel, KafkaContainer
 import io.hydrosphere.serving.kafka.kafka_messages.KafkaServingMessage
 import io.hydrosphere.serving.kafka.kafka_messages.KafkaServingMessage.RequestOrError
 import io.hydrosphere.serving.kafka.mappers.{KafkaServingMessageDeserializer, KafkaServingMessageSerde, KafkaServingMessageSerializer}
-import io.hydrosphere.serving.kafka.predict.{Application, ApplicationService, PredictService, PredictServiceImpl}
+import io.hydrosphere.serving.kafka.predict.{Application, PredictService, PredictServiceImpl, XDSApplicationUpdateService}
 import io.hydrosphere.serving.kafka.stream.KafkaStreamer
 import io.hydrosphere.serving.manager.grpc.applications.{ExecutionGraph, ExecutionStage, KafkaStreaming}
 import io.hydrosphere.serving.tensorflow.api.model.ModelSpec
@@ -35,13 +35,20 @@ class AppSpec extends FlatSpec
     createTopic("success")
     createTopic("failure")
     createTopic("test")
-    fakeModelServer = Await.result(FakeModel.runAsync(56787), 10 seconds)
+    fakeModelServer = Await.result(FakeModel.runAsync(56787, 56786), 10 seconds)
   }
 
   after {
     fakeModelServer.stop()
     deleteTopics()
   }
+
+     def executionGraph(num:Int) = (ExecutionStage(
+       stageId = s"stage$num",
+       signature = Some(ModelSignature(
+         signatureName = s"Signature$num"
+       ))
+     ))
 
   "App" should "Read valuesf from kafka, save predicted values" in {
 
@@ -51,27 +58,24 @@ class AppSpec extends FlatSpec
       KafkaConfiguration("localhost", 9092)
     )
 
-    implicit val appService = new ApplicationService {
-      override def getApplications(): Seq[Application] = Seq(
-        Application("test-app",
-          Some("test"),
-          Some("success"),
-          Some("failure"),
-          ModelSpec(), ExecutionGraph(Seq(executionGraph(1), executionGraph(2), executionGraph(3))))
-      )
-    }
 
     implicit val streamer = new KafkaStreamer[Array[Byte], KafkaServingMessage](Serdes.ByteArray().getClass, classOf[KafkaServingMessageSerde])
     implicit val modelChanel = ManagedChannelBuilder.forAddress("localhost", 56787).usePlaintext(true).build
+    val appChanel = ManagedChannelBuilder.forAddress("localhost", 56786).usePlaintext(true).build
+
 
     implicit val predictService: PredictService = new PredictServiceImpl
+
+    implicit val applicationUpdater = new XDSApplicationUpdateService()(appChanel)
 
     val consumer = new TestConsumer[Array[Byte], KafkaServingMessage]("localhost:9092", "test_1", Serdes.ByteArray().getClass,
       classOf[KafkaServingMessageSerde])
 
+    val context = AppContext();
+
     new Thread("flow-thread"){
       override def run(): Unit = {
-        Flow.start(AppContext())
+        Flow.start(context)
       }
     }.start()
 
@@ -86,14 +90,11 @@ class AppSpec extends FlatSpec
     TimeUnit.SECONDS.sleep(5)
 
     consumer.out.size shouldBe(10)
+
+    Flow.stop(context)
   }
 
-     def executionGraph(num:Int) = (ExecutionStage(
-       stageId = s"stage$num",
-       signature = Some(ModelSignature(
-         signatureName = s"Signature$num"
-       ))
-     ))
+
 
   def message(num: Int): KafkaServingMessage = {
 
