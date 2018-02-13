@@ -1,8 +1,9 @@
 package io.hydrosphere.serving.kafka.it.infrostructure
 
 import java.util.Properties
+import java.util.concurrent.Future
 
-import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
+import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord, RecordMetadata}
 import org.apache.kafka.common.serialization._
 import org.apache.kafka.streams.KafkaStreams
 import org.apache.kafka.streams.kstream.{ForeachAction, KStream}
@@ -19,9 +20,13 @@ class TestProducer[K,V](topic:String = "test", hostAndPort:String = "localhost:9
 
   val producer = new KafkaProducer[K, V](props)
 
-  def send(key: K, message: V) = {
+  def send(key: K, message: V): Future[RecordMetadata] = {
     val record = new ProducerRecord("test", key, message)
     producer.send(record)
+  }
+
+  def close():Unit = {
+    producer.close()
   }
 }
 
@@ -29,24 +34,25 @@ class TestConsumer[K,V](hostAndPort:String,
                         name:String,
                         keySerde:Class[_ <: Serde[K]],
                         valueSerde:Class[_ <: Serde[V]]) {
-  val props = initProps()
+  val props: Properties = initProps()
   val (in, out, failure) = init()
+  var streams :KafkaStreams = _
 
   import org.apache.kafka.streams.StreamsConfig
 
   props.put(StreamsConfig.CLIENT_ID_CONFIG, name)
   props.put("group.id", name)
   props.put("bootstrap.servers", hostAndPort)
-  props.put("key.deserializer", classOf[StringDeserializer].getName())
-  props.put("value.deserializer", classOf[IntegerDeserializer].getName())
+  props.put("key.deserializer", classOf[StringDeserializer].getName)
+  props.put("value.deserializer", classOf[IntegerDeserializer].getName)
 
-  def initProps() = {
+  def initProps(): Properties = {
     val p = new Properties()
     p.put(StreamsConfig.CLIENT_ID_CONFIG, name)
     p.put("group.id", name)
     p.put("bootstrap.servers", hostAndPort)
-    p.put("key.deserializer", classOf[StringDeserializer].getName())
-    p.put("value.deserializer", classOf[IntegerDeserializer].getName())
+    p.put("key.deserializer", classOf[StringDeserializer].getName)
+    p.put("value.deserializer", classOf[IntegerDeserializer].getName)
     p
   }
 
@@ -90,9 +96,15 @@ class TestConsumer[K,V](hostAndPort:String,
     })
 
     val topology = builder.build()
-    val streams = new KafkaStreams(topology, props)
+    streams = new KafkaStreams(topology, props)
     streams.start()
 
     (inCollection, successCollection, failureCollection)
   }
+
+  def close(): Unit = if(streams != null){
+      streams.close()
+  }
+
+
 }

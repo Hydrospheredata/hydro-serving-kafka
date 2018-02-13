@@ -9,26 +9,25 @@ import com.whisk.docker.{DockerContainer, DockerFactory, DockerKit, DockerReadyC
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.{BeforeAndAfterAll, Suite}
-import org.slf4j.LoggerFactory
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
 trait KafkaContainer extends ScalaFutures
-    with BeforeAndAfterAll
-    with DockerKit {
+  with BeforeAndAfterAll
+  with DockerKit {
   self: Suite =>
 
   private val client: DockerClient = DefaultDockerClient.fromEnv().build()
   override implicit val dockerFactory: DockerFactory = new SpotifyDockerFactory(client)
-  val log = LoggerFactory.getLogger(classOf[KafkaContainer])
+  val log: Logger = LoggerFactory.getLogger(classOf[KafkaContainer])
 
   def dockerInitPatienceInterval =
     PatienceConfig(scaled(Span(20, Seconds)), scaled(Span(10, Millis)))
 
   def dockerPullImagesPatienceInterval =
     PatienceConfig(scaled(Span(1200, Seconds)), scaled(Span(250, Millis)))
-
 
 
   override protected def beforeAll(): Unit = {
@@ -53,9 +52,10 @@ trait KafkaContainer extends ScalaFutures
     exec(containerName(), cmd)
   }
 
-  def deleteTopics(): Unit = for(topic <- topicsList()){
-      topicDelete(topic)
-    }
+  def deleteTopics(): Unit = for (
+    topic <- topicsList() if !topic.startsWith("_")) {
+    topicDelete(topic)
+  }
 
 
   def topicsList(): Seq[String] = {
@@ -63,51 +63,51 @@ trait KafkaContainer extends ScalaFutures
     logMessage.split("\n")
   }
 
-  def topicExists(topicName:String):Boolean = {
+  def topicExists(topicName: String): Boolean = {
     val cmd = s"$topicScript --describe --topic $topicName $zookeeperParam"
     val result = exec(containerName(), cmd)
     result != null && !result.isEmpty
   }
 
-  def topicDelete(topicName:String):Unit = {
+  def topicDelete(topicName: String): Unit = {
     val cmd = s"$topicScript --delete --topic $topicName $zookeeperParam"
     exec(containerName(), cmd)
   }
 
-  def allowDeletion():Unit = {
+  def allowDeletion(): Unit = {
     val cmd = "echo \"delete.topic.enable=true\" >> /opt/kafka_2.11-0.10.1.0/config/server.properties"
     log.info("setting delete.topic.enable=true")
     exec(containerName(), cmd)
   }
 
-  def restartKafka():Unit = {
+  def restartKafka(): Unit = {
     stopKafka()
     //stopZookeeper()
     //startZookeeper()
     startKafka()
   }
 
-  def stopKafka(): Unit ={
+  def stopKafka(): Unit = {
     val cmd = s"$path/kafka-server-stop.sh"
     log.info("stopping kafka")
     exec(containerName(), cmd)
     TimeUnit.SECONDS.sleep(2)
   }
 
-  def startKafka(): Unit ={
+  def startKafka(): Unit = {
     val cmd = s" $path/kafka-server-start.sh /opt/kafka_2.11-0.10.1.0/config/server.properties"
     log.info("starting kafka")
     exec(containerName(), cmd)
     TimeUnit.SECONDS.sleep(2)
   }
 
-  def stopZookeeper(): Unit ={
+  def stopZookeeper(): Unit = {
     val cmd = s"$path/zookeeper-server-stop.sh"
     log.info("stopping zookeeper")
     exec(containerName(), cmd)
   }
 
-  def startZookeeper(): Unit ={
+  def startZookeeper(): Unit = {
     val cmd = s"$path/zookeeper-server-start.sh /opt/kafka_2.11-0.10.1.0/config/zookeeper.properties"
     log.info("starting zookeeper")
     exec(containerName(), cmd)
@@ -126,9 +126,10 @@ trait KafkaContainer extends ScalaFutures
 
 
   def KafkaAdvertisedPort = 9092
+
   val zookeeperDefaultPort = 2181
 
-  lazy val kafkaContainer = DockerContainer("spotify/kafka")
+  lazy val kafkaContainer: DockerContainer = DockerContainer("spotify/kafka")
     .withPorts(
       KafkaAdvertisedPort -> Some(KafkaAdvertisedPort),
       zookeeperDefaultPort -> Some(zookeeperDefaultPort)

@@ -7,16 +7,16 @@ import io.hydrosphere.serving.tensorflow.api.model.ModelSpec
 import io.hydrosphere.serving.tensorflow.api.predict.{PredictRequest, PredictResponse}
 
 import scala.annotation.tailrec
-import scala.concurrent.{CanAwait, ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
 
 trait PredictService {
 
-  implicit val executionContext = ExecutionContext.global
+  implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
 
   def fetchPredict(in: PredictRequest): Future[PredictResponse]
 
-  def report(traceId:String, future: Future[PredictResponse]): Future[KafkaServingMessage] = future
+  def report(traceId: String, future: Future[PredictResponse]): Future[KafkaServingMessage] = future
     .map(resp => KafkaServingMessage(traceId).withRequest(PredictRequest(inputs = resp.outputs)))
     .recover { case e: Exception => KafkaServingMessage(traceId).withError(KafkaError(
       errorMessage = e.getMessage))
@@ -25,7 +25,7 @@ trait PredictService {
   def predictByGraph(appName: String, request: PredictRequest, graph: ExecutionGraph): Future[PredictResponse] = {
     graph.stages.toList match {
       case Nil => Future.failed(new RuntimeException("Should be at least one PredictRequest item"))
-      case head :: tail => {
+      case head :: tail =>
 
         val modelSpec = ModelSpec(
           name = appName,
@@ -34,14 +34,13 @@ trait PredictService {
 
         val requestWithSignature = request.withModelSpec(modelSpec)
         predictRec(Future.successful(requestWithSignature), tail)
-      }
     }
   }
 
   @tailrec
   private def predictRec(prev: Future[PredictRequest], stages: Seq[ExecutionStage]): Future[PredictResponse] = {
 
-    val result = prev.flatMap(fetchPredict(_))
+    val result = prev.flatMap(fetchPredict)
 
     def toFutureRequest(futureResponse: Future[PredictResponse], modelSignature: ModelSignature): Future[PredictRequest] =
       for {

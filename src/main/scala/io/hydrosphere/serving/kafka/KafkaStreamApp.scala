@@ -1,50 +1,51 @@
 package io.hydrosphere.serving.kafka
 
-import com.typesafe.config.ConfigFactory
-import io.grpc.ManagedChannelBuilder
-import io.hydrosphere.serving.kafka.config.{AppContext, Configuration, Context}
+
+import io.hydrosphere.serving.kafka.config.KafkaServingStream
 import org.apache.logging.log4j.scala.Logging
 import io.hydrosphere.serving.kafka.kafka_messages.KafkaServingMessage
-import io.hydrosphere.serving.kafka.mappers.KafkaServingMessageSerde
-import io.hydrosphere.serving.kafka.predict.{PredictService, PredictServiceImpl, XDSApplicationUpdateService}
-import io.hydrosphere.serving.kafka.stream.KafkaStreamer
+import io.hydrosphere.serving.kafka.predict._
 import io.hydrosphere.serving.manager.grpc.applications.ExecutionGraph
-import io.hydrosphere.serving.tensorflow.api.model.ModelSpec
-import io.hydrosphere.serving.tensorflow.api.predict.{PredictRequest, PredictResponse}
-import org.apache.kafka.common.serialization.Serdes
+import io.hydrosphere.serving.tensorflow.api.predict.PredictRequest
 
-import scala.concurrent.ExecutionContext
+import scala.collection.Seq
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
+
+
+
 
 object KafkaStreamApp extends App with Logging {
 
-  implicit val appConfig = Configuration(ConfigFactory.load())
+  import io.hydrosphere.serving.kafka.config.Inject._
 
-
-
-  implicit val kafkaServing = new KafkaStreamer[Array[Byte], KafkaServingMessage](Serdes.ByteArray().getClass, classOf[KafkaServingMessageSerde])
-  implicit val rpcChanel = ManagedChannelBuilder
-    .forAddress(appConfig.sidecar.host, appConfig.sidecar.port)
-    .usePlaintext(true)
-    .build
-
-
-  implicit val predictService: PredictService = new PredictServiceImpl
-
-
-  implicit val applicationUpdater = new XDSApplicationUpdateService()
-
-  Flow.start(AppContext())
+  val flow = Flow()
 
   sys addShutdownHook {
-    kafkaServing.stop()
     logger.info("Stopping kafka serving app")
+    flow.stop()
+  }
+
+}
+
+object Flow {
+  def apply()(
+    implicit kafkaServing: KafkaServingStream,
+    applicationUpdateService: UpdateService[Seq[Application]],
+    predictor: PredictService
+  ):Flow = {
+    val flow = new Flow()
+    flow.start()
+    flow
   }
 }
 
+class Flow()(
+  implicit kafkaServing: KafkaServingStream,
+  applicationUpdateService: UpdateService[Seq[Application]],
+  predictor: PredictService
+) extends Logging {
 
-object Flow extends Logging {
-
-  implicit val executionContext = ExecutionContext.global
+  implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
 
 
 
@@ -52,14 +53,11 @@ object Flow extends Logging {
 
   private[this] val latch = new CountDownLatch(1)
 
-  def start(context: Context): Unit = {
+  def start(): Unit = {
     logger.info("starting kafka serving app")
 
-    val kafkaServing = context.kafkaServing
-    val predictor = context.predictService
-
-    context.kafkaServing
-      .streamForAll[KafkaServingMessage](context.applicationUpdateService) { appAndStream =>
+    kafkaServing
+      .streamForAll[KafkaServingMessage]{ appAndStream =>
 
       val app = appAndStream._1
 
@@ -73,11 +71,12 @@ object Flow extends Logging {
         .branchV(_.requestOrError.isRequest, _.requestOrError.isError)
     }
 
-    latch.await
+    latch.await()
   }
 
-  def stop(context: Context): Unit = {
-    context.kafkaServing.stop()
+  def stop(): Unit = {
+    kafkaServing.stop()
     latch.countDown()
   }
+
 }
