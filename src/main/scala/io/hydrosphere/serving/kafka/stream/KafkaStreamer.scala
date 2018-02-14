@@ -20,7 +20,8 @@ case class AppTopicsConfig(outTopic: String, errorTopic: Option[String])
 
 
 class KafkaStreamer[K, V](keySerde: Class[_ <: Serde[K]], valSerde: Class[_ <: Serde[V]])(
-  implicit config: Configuration)
+  implicit config: Configuration,
+  updateService: UpdateService[Seq[Application]])
   extends Streamer[K, V]
     with Logging {
 
@@ -75,7 +76,7 @@ class KafkaStreamer[K, V](keySerde: Class[_ <: Serde[K]], valSerde: Class[_ <: S
   }
 
   override def streamForAll[R]
-  (stream:  StreamFromApp[K,V,R])(implicit updateService: UpdateService[Seq[Application]]): Unit = {
+  (stream:  StreamFromApp[K,V,R]): Unit = {
     updateService.subscribe(updateStore(stream, updateService.getUpdates))
     updateService.getUpdates("0")
   }

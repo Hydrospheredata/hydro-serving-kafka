@@ -1,15 +1,13 @@
 package io.hydrosphere.serving.kafka
 
 import io.hydrosphere.serving.contract.model_signature.ModelSignature
-import io.hydrosphere.serving.kafka.predict.PredictService
+import io.hydrosphere.serving.kafka.predict.{Application, PredictService}
 import io.hydrosphere.serving.manager.grpc.applications.{ExecutionGraph, ExecutionStage}
-import io.hydrosphere.serving.tensorflow.api.model.ModelSpec
 import io.hydrosphere.serving.tensorflow.api.predict.{PredictRequest, PredictResponse}
 import io.hydrosphere.serving.tensorflow.tensor.TensorProto
 import org.scalatest.{FlatSpec, Matchers}
 
-import scala.concurrent.Future
-import scala.concurrent.Await
+import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import scala.concurrent.ExecutionContext.global
 import scala.concurrent.duration._
 
@@ -17,20 +15,29 @@ class PredictServiceSpec
   extends FlatSpec
   with Matchers {
 
-  implicit val ececutionContext = global
+  implicit val ececutionContext: ExecutionContextExecutor = global
 
   def signature(key:String) = ModelSignature(key)
 
-  val input = Map[String, TensorProto](("key", TensorProto()))
+  def app(stages:Seq[ExecutionStage]) = Application(
+    executionGraph = Some(ExecutionGraph(stages)),
+    name = "SomeApp",
+    id = 1,
+    inTopic = None,
+    outTopic = None,
+    errorTopic = None,
+    consumerId = None
+  )
+
+  val input: Map[String, TensorProto] = Map[String, TensorProto](("key", TensorProto()))
 
   "PredictService" should "return successful response for one stage" in {
 
-    val stages:Seq[ExecutionStage] = ExecutionStage("key1", Some(signature("success"))) :: Nil
+    val stages:Seq[ExecutionStage] = ExecutionStage("success", Some(signature("success"))) :: Nil
     val predictor = new PredictServiceStub(stages)
 
-    val response = predictor.predictByGraph("SomeApp", new PredictRequest(
-      inputs = input
-    ), ExecutionGraph(stages))
+
+    val response = predictor.predictByGraph(new PredictRequest(inputs = input), app(stages))
 
     val result = predictor.report("traceId", response)
 
@@ -40,14 +47,12 @@ class PredictServiceSpec
 
   "PredictService" should "return successful response for several stage" in {
 
-    val stages:Seq[ExecutionStage] = ExecutionStage("key1", Some(signature("success"))) ::
-      ExecutionStage("key2", Some(signature("success"))) ::
-      ExecutionStage("key3", Some(signature("success"))) :: Nil
+    val stages:Seq[ExecutionStage] = ExecutionStage("success", Some(signature("success"))) ::
+      ExecutionStage("success", Some(signature("success"))) ::
+      ExecutionStage("success", Some(signature("success"))) :: Nil
     val predictor = new PredictServiceStub(stages)
 
-    val response = predictor.predictByGraph("SomeApp", new PredictRequest(
-      inputs = input
-    ), ExecutionGraph(stages))
+    val response = predictor.predictByGraph(new PredictRequest(inputs = input), app(stages))
 
     val result = predictor.report("traceId", response)
 
@@ -57,12 +62,10 @@ class PredictServiceSpec
 
   "PredictService" should "return exception response for one stage" in {
 
-    val stages:Seq[ExecutionStage] = ExecutionStage("key1", Some(signature("failure"))) :: Nil
+    val stages:Seq[ExecutionStage] = ExecutionStage("failure", Some(signature("failure"))) :: Nil
     val predictor = new PredictServiceStub(stages)
 
-    val response = predictor.predictByGraph("SomeApp", new PredictRequest(
-      inputs = input
-    ), ExecutionGraph(stages))
+    val response = predictor.predictByGraph(new PredictRequest(inputs = input), app(stages))
 
     val result = predictor.report("traceId", response)
 
@@ -73,14 +76,12 @@ class PredictServiceSpec
   "PredictService" should "return exception response for several stage" in {
 
     val stages:Seq[ExecutionStage] = ExecutionStage("key1", Some(signature("success"))) ::
-      ExecutionStage("key2", Some(signature("failure"))) ::
+      ExecutionStage("failure", Some(signature("failure"))) ::
       ExecutionStage("key3", Some(signature("success"))) :: Nil
 
     val predictor = new PredictServiceStub(stages)
 
-    val response = predictor.predictByGraph("SomeApp", new PredictRequest(
-      inputs = input
-    ), ExecutionGraph(stages))
+    val response = predictor.predictByGraph(new PredictRequest(inputs = input), app(stages))
 
     val result = predictor.report("traceId", response)
 

@@ -51,8 +51,8 @@ class TestConsumer[K,V](hostAndPort:String,
     p.put(StreamsConfig.CLIENT_ID_CONFIG, name)
     p.put("group.id", name)
     p.put("bootstrap.servers", hostAndPort)
-    p.put("key.deserializer", classOf[StringDeserializer].getName)
-    p.put("value.deserializer", classOf[IntegerDeserializer].getName)
+    p.put("key.deserializer", classOf[StringDeserializer].getName())
+    p.put("value.deserializer", classOf[IntegerDeserializer].getName())
     p
   }
 

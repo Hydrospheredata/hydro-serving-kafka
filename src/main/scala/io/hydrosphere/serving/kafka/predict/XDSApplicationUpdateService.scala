@@ -1,7 +1,7 @@
 package io.hydrosphere.serving.kafka.predict
 
 import envoy.api.v2.{AggregatedDiscoveryServiceGrpc, DiscoveryRequest, DiscoveryResponse, Node}
-import io.grpc.Channel
+import io.grpc.{Channel, ManagedChannel}
 import io.grpc.stub.StreamObserver
 import io.hydrosphere.serving.manager.grpc.applications.{Application => ProtoApplication}
 import org.apache.logging.log4j.scala.Logging
@@ -27,12 +27,12 @@ object XDSApplicationUpdateService{
   }
 }
 
-class XDSApplicationUpdateService(implicit chanel: Channel)
+class XDSApplicationUpdateService(implicit chanel: ManagedChannel)
   extends UpdateService[Seq[Application]] with Logging{
 
   import XDSApplicationUpdateService._
 
-  val xDSStream = AggregatedDiscoveryServiceGrpc.stub(chanel)
+  val xDSStream: AggregatedDiscoveryServiceGrpc.AggregatedDiscoveryServiceStub = AggregatedDiscoveryServiceGrpc.stub(chanel)
 
   val typeUrl = "type.googleapis.com/io.hydrosphere.serving.manager.grpc.applications.Application"
 
@@ -57,9 +57,16 @@ class XDSApplicationUpdateService(implicit chanel: Channel)
     }
   }
 
-  val response = xDSStream.streamAggregatedResources(request)
+  val response: StreamObserver[DiscoveryRequest] = xDSStream.streamAggregatedResources(request)
 
-  override def getUpdates(version: String): Unit = response.onNext(DiscoveryRequest(
-    versionInfo = version,
-    typeUrl = typeUrl))
+  override def getUpdates(version: String): Unit = response.onNext(
+    DiscoveryRequest(
+      versionInfo = version,
+      node = Some(
+        Node(
+          //            id="applications"
+        )
+      ),
+      //resourceNames = Seq("one", "two"),
+      typeUrl = "type.googleapis.com/io.hydrosphere.serving.manager.grpc.applications.Application"))
 }

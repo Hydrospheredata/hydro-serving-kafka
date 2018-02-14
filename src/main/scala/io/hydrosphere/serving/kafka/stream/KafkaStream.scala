@@ -1,13 +1,14 @@
 package io.hydrosphere.serving.kafka.stream
 
 import org.apache.kafka.streams.kstream.{KStream, Predicate, ValueMapper}
+import org.apache.logging.log4j.scala.Logging
 
 
 object KafkaStream {
   def apply[K, V](kStream: KStream[K, V]) = new KafkaStream[K, V](kStream)
 }
 
-class KafkaStream[K, V](val underlying: KStream[K, V]) extends Stream[K, V] {
+class KafkaStream[K, V](val underlying: KStream[K, V]) extends Stream[K, V] with Logging {
 
   override def mapV[V1](f: V => V1): KafkaStream[K, V1] = KafkaStream {
     underlying.mapValues[V1](new ValueMapper[V, V1] {
@@ -34,10 +35,11 @@ class KafkaStream[K, V](val underlying: KStream[K, V]) extends Stream[K, V] {
     val successResult = array(0)
     val failureDesult = array(1)
 
-    (KafkaStream(successResult), KafkaStream(failureDesult))
+    (KafkaStream(successResult).withLog(v => logger.debug(s"message handled: $v")),
+      KafkaStream(failureDesult).withLog(v => logger.error(s"message failed: $v"))
+    )
   }
 
   override def to(topicName: String): Unit = underlying.to(topicName)
 
-  override def close(): Unit = ???
 }

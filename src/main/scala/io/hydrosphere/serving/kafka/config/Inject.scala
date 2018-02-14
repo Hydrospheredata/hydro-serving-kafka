@@ -10,15 +10,17 @@ object Inject{
 
   implicit val appConfig = Configuration(ConfigFactory.load())
 
-  implicit val kafkaServing = new KafkaServingStream(Serdes.ByteArray().getClass, classOf[KafkaServingMessageSerde])
-
   implicit val rpcChanel: ManagedChannel = ManagedChannelBuilder
     .forAddress(appConfig.sidecar.host, appConfig.sidecar.port)
     .usePlaintext(true)
     .build
 
   implicit val predictService: PredictService = new PredictServiceImpl
-
   implicit val applicationUpdater = new XDSApplicationUpdateService()
+  implicit val kafkaServing = new KafkaServingStream(Serdes.ByteArray().getClass, classOf[KafkaServingMessageSerde])
+
+
+
+
 
 }

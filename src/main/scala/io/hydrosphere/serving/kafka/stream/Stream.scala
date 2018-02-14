@@ -10,9 +10,14 @@ trait Stream[-K, V] {
   def mapV[V1](f: V => V1): Stream[K, V1]
   def filterV(f: V => Boolean):Stream[K, V]
   def branchV(success: V => Boolean, failure: V => Boolean):DoubleStream[K, V]
-  def mapAsync[V1](f: V => Future[V1])(implicit ec: ExecutionContext, duration: Duration = 60 seconds): Stream[K, V1] = {
+  def mapAsync[V1](f: V => Future[V1])(implicit ec: ExecutionContext, duration: Duration = 60 seconds): Stream[K, V1] =
     mapV(value => Await.result(f(value), duration))
-  }
+
+  def withLog(logging: V => Unit): Stream[K, V] =
+    mapV(value => {
+      logging(value)
+      value
+    })
+
   def to(topicName:String):Unit
-  def close(): Unit
 }

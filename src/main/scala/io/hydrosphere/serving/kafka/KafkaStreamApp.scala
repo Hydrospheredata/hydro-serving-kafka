@@ -66,7 +66,7 @@ class Flow()(
       appAndStream._2
         .filterV(_.requestOrError.isRequest)
         .mapV(message => (message.traceId, PredictRequest(None, message.requestOrError.request.get.inputs)))
-        .mapV(message => (message._1, predictor.predictByGraph(app.name, message._2, graph)))
+        .mapV(message => (message._1, predictor.predictByGraph(message._2, app)))
         .mapAsync(message => predictor.report(message._1, message._2))
         .branchV(_.requestOrError.isRequest, _.requestOrError.isError)
     }
@@ -76,6 +76,7 @@ class Flow()(
 
   def stop(): Unit = {
     kafkaServing.stop()
+
     latch.countDown()
   }
 

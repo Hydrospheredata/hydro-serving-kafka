@@ -7,7 +7,7 @@ import io.hydrosphere.serving.kafka.predict.{Application, UpdateService}
 trait Streamer[K,V]{
 
   def stop():Unit
-  def streamForAll[R](stream: AppAndStream[K,V] => DoubleStream[K,R])(implicit updateService:UpdateService[Seq[Application]]): Unit
+  def streamForAll[R](stream: AppAndStream[K,V] => DoubleStream[K,R]): Unit
 
 }
 

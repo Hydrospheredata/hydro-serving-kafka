@@ -8,6 +8,7 @@ import io.hydrosphere.serving.tensorflow.api.predict.{PredictRequest, PredictRes
 
 import scala.annotation.tailrec
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
+import scala.util.Try
 
 
 trait PredictService {
@@ -22,14 +23,14 @@ trait PredictService {
       errorMessage = e.getMessage))
     }
 
-  def predictByGraph(appName: String, request: PredictRequest, graph: ExecutionGraph): Future[PredictResponse] = {
-    graph.stages.toList match {
+  def predictByGraph(request: PredictRequest, app: Application): Future[PredictResponse] = {
+    app.executionGraph.get.stages.toList match {
       case Nil => Future.failed(new RuntimeException("Should be at least one PredictRequest item"))
       case head :: tail =>
 
         val modelSpec = ModelSpec(
-          name = appName,
-          signatureName = head.signature.get.signatureName
+          name = app.name,
+          signatureName = head.stageId
         )
 
         val requestWithSignature = request.withModelSpec(modelSpec)
@@ -38,7 +39,7 @@ trait PredictService {
   }
 
   @tailrec
-  private def predictRec(prev: Future[PredictRequest], stages: Seq[ExecutionStage]): Future[PredictResponse] = {
+  private[this] def predictRec(prev: Future[PredictRequest], stages: Seq[ExecutionStage]): Future[PredictResponse] = {
 
     val result = prev.flatMap(fetchPredict)
 
