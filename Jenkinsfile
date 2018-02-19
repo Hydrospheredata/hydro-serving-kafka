@@ -1,9 +1,6 @@
-versions = [
-        "2.0",
-        "2.1",
-        "2.2"
-]
-
+def collectTestResults() {
+    step([$class: 'JUnitResultArchiver', testResults: '**/target/surefire-reports/TEST-*.xml', allowEmptyResults: true])
+}
 
 def checkoutSource(gitCredentialId, organization, repository) {
     withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: gitCredentialId, usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD']]) {
