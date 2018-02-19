@@ -119,8 +119,8 @@ trait KafkaContainer extends ScalaFutures
 
   private[KafkaContainer] def exec(dockerName: String, cmd: String): String = {
     val arr = Array("sh", "-c", cmd)
-    val execCreation = client.execCreate(dockerName.replace("/", ""), arr, DockerClient.ExecCreateParam.attachStdout(),
-      DockerClient.ExecCreateParam.attachStderr())
+    val execCreation = client.execCreate(dockerName.replace("/", ""), arr, DockerClient.ExecCreateParam.attachStdin(),
+      DockerClient.ExecCreateParam.attachStdout())
     val logMessage = client.execStart(execCreation.id, ExecStartParameter.TTY).readFully()
     log.info(logMessage)
     logMessage

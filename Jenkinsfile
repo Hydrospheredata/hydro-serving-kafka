@@ -104,8 +104,6 @@ node("JenkinsOnDemand") {
     stage('Test') {
         try {
             def curVersion = currentVersion()
-            sh "nc -z -v -w5 localhost 9092"
-            sh "nc -z -v -w5 localhost 2181"
             sh "${env.WORKSPACE}/sbt/sbt -DappVersion=${curVersion} -Dsbt.override.build.repos=true -Dsbt.repository.config=${env.WORKSPACE}/project/repositories test"
         } finally {
             junit testResults: '**/target/test-reports/io.hydrosphere*.xml', allowEmptyResults: true
