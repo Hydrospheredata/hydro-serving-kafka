@@ -101,6 +101,7 @@ services:
       - sidecar
       - kafka
       - manager
+    command: ["/app/wait-for-manager.sh", "sidecar", "8081", "/app/start.sh"]
     environment:
       - "SIDECAR_INGRESS_PORT=8080"
       - "SIDECAR_EGRESS_PORT=8081"
