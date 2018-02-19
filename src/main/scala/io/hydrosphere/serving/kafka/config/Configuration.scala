@@ -5,8 +5,8 @@ import org.apache.logging.log4j.scala.Logging
 
 
 case class KafkaConfiguration(advertisedHost: String, advertisedPort: Int)
-case class ApplicationConfig(port: Int, appId: String)
-case class SidecarConfig(host: String, port: Int)
+case class ApplicationConfig(appId: String, port: Int)
+case class SidecarConfig(host: String, egressPort: Int, ingressPort:Int, adminPort:Int)
 
 final case class Configuration(application:ApplicationConfig,
                              sidecar:SidecarConfig,
@@ -23,7 +23,9 @@ object Configuration extends Logging {
       val c = config.getConfig("sidecar")
       SidecarConfig(
         host = c.getString("host"),
-        port = c.getInt("port")
+        egressPort = c.getInt("egressPort"),
+        ingressPort = c.getInt("ingressPort"),
+        adminPort = c.getInt("adminPort")
       )
     }
 

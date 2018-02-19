@@ -6,21 +6,17 @@ import io.hydrosphere.serving.kafka.mappers.KafkaServingMessageSerde
 import io.hydrosphere.serving.kafka.predict.{PredictService, PredictServiceImpl, XDSApplicationUpdateService}
 import org.apache.kafka.common.serialization.Serdes
 
-object Inject{
+object Inject {
 
-  implicit val appConfig = Configuration(ConfigFactory.load())
+  implicit lazy val appConfig = Configuration(ConfigFactory.load())
 
-  implicit val rpcChanel: ManagedChannel = ManagedChannelBuilder
-    .forAddress(appConfig.sidecar.host, appConfig.sidecar.port)
+  implicit lazy val rpcChanel: ManagedChannel = ManagedChannelBuilder
+    .forAddress(appConfig.sidecar.host, appConfig.sidecar.egressPort)
     .usePlaintext(true)
     .build
 
-  implicit val predictService: PredictService = new PredictServiceImpl
-  implicit val applicationUpdater = new XDSApplicationUpdateService()
-  implicit val kafkaServing = new KafkaServingStream(Serdes.ByteArray().getClass, classOf[KafkaServingMessageSerde])
-
-
-
-
+  implicit lazy val predictService: PredictService = new PredictServiceImpl
+  implicit lazy val applicationUpdater = new XDSApplicationUpdateService()
+  implicit lazy val kafkaServing = new KafkaServingStream(Serdes.ByteArray().getClass, classOf[KafkaServingMessageSerde])
 
 }

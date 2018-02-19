@@ -1,7 +1,9 @@
 package io.hydrosphere.serving.kafka.predict
 
+import java.util.concurrent.TimeUnit
+
 import envoy.api.v2.{AggregatedDiscoveryServiceGrpc, DiscoveryRequest, DiscoveryResponse, Node}
-import io.grpc.{Channel, ManagedChannel}
+import io.grpc.{Channel, ConnectivityState, ManagedChannel}
 import io.grpc.stub.StreamObserver
 import io.hydrosphere.serving.manager.grpc.applications.{Application => ProtoApplication}
 import org.apache.logging.log4j.scala.Logging
@@ -31,6 +33,16 @@ class XDSApplicationUpdateService(implicit chanel: ManagedChannel)
   extends UpdateService[Seq[Application]] with Logging{
 
   import XDSApplicationUpdateService._
+
+  val readyStates = Set(ConnectivityState.READY)
+  logger.info(s"Trying to connect to grpc service.")
+
+  while (!readyStates.contains(chanel.getState(true))){
+    logger.info(s"Connecting to grpc service. Current state is ${chanel.getState(true)}")
+    TimeUnit.SECONDS.sleep(3)
+  }
+
+  logger.info(s"Successfully connected to grpc service: ${chanel.getState(true)}")
 
   val xDSStream: AggregatedDiscoveryServiceGrpc.AggregatedDiscoveryServiceStub = AggregatedDiscoveryServiceGrpc.stub(chanel)
 

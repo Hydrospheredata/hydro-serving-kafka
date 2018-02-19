@@ -11,8 +11,8 @@ import org.apache.kafka.common.serialization.Serdes
 object EndToEndInject {
 
   implicit val config = Configuration(
-    ApplicationConfig(56789, "localhost"),
-    SidecarConfig("localhost", 56788),
+    ApplicationConfig("hydro-serving-kafka", 56789),
+    SidecarConfig("localhost", 56788, 56688, 56687),
     KafkaConfiguration("localhost", 9092)
   )
 
