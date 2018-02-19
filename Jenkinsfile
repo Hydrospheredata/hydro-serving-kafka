@@ -99,9 +99,18 @@ node("JenkinsOnDemand") {
     }
 
 
-    stage('Build/Test/Deploy') {
-        sh "make"
-        sh "make test"
+    stage('Build') {
+            def curVersion = currentVersion()
+            sh "${env.WORKSPACE}/sbt/sbt -DappVersion=${curVersion} -Dsbt.override.build.repos=true -Dsbt.repository.config=${env.WORKSPACE}/project/repositories compile docker"
+    }
+
+    stage('Test') {
+        try {
+            def curVersion = currentVersion()
+            sh "${env.WORKSPACE}/sbt/sbt -DappVersion=${curVersion} -Dsbt.override.build.repos=true -Dsbt.repository.config=${env.WORKSPACE}/project/repositories test it:test-only"
+        } finally {
+            junit testResults: '**/target/test-reports/io.hydrosphere*.xml', allowEmptyResults: true
+        }
     }
 
     if (isReleaseJob()) {
