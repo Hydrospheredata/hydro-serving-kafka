@@ -40,19 +40,14 @@ class TestConsumer[K,V](hostAndPort:String,
 
   import org.apache.kafka.streams.StreamsConfig
 
-  props.put(StreamsConfig.CLIENT_ID_CONFIG, name)
-  props.put("group.id", name)
-  props.put("bootstrap.servers", hostAndPort)
-  props.put("key.deserializer", classOf[StringDeserializer].getName)
-  props.put("value.deserializer", classOf[IntegerDeserializer].getName)
-
   def initProps(): Properties = {
     val p = new Properties()
-    p.put(StreamsConfig.CLIENT_ID_CONFIG, name)
-    p.put("group.id", name)
-    p.put("bootstrap.servers", hostAndPort)
-    p.put("key.deserializer", classOf[StringDeserializer].getName())
-    p.put("value.deserializer", classOf[IntegerDeserializer].getName())
+    p.put(StreamsConfig.APPLICATION_ID_CONFIG, "test")
+    p.put(StreamsConfig.CLIENT_ID_CONFIG, "test")
+    import org.apache.kafka.streams.StreamsConfig
+    p.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, hostAndPort)
+    p.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, keySerde)
+    p.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, valueSerde)
     p
   }
 
@@ -61,14 +56,6 @@ class TestConsumer[K,V](hostAndPort:String,
     val successCollection = new ListBuffer[V]
     val failureCollection = new ListBuffer[V]
     val inCollection = new ListBuffer[V]
-
-    val props = new Properties()
-    props.put(StreamsConfig.APPLICATION_ID_CONFIG, "test")
-    props.put(StreamsConfig.CLIENT_ID_CONFIG, "test")
-    import org.apache.kafka.streams.StreamsConfig
-    props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
-    props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, keySerde)
-    props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, valueSerde)
 
     import org.apache.kafka.streams.StreamsBuilder
     val builder = new StreamsBuilder()

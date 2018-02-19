@@ -1,5 +1,6 @@
 package io.hydrosphere.serving.kafka.it.infrostructure
 
+import java.nio.file.{Path, Paths}
 import java.util.concurrent.TimeUnit
 
 import com.spotify.docker.client.DockerClient.ExecStartParameter
@@ -13,6 +14,7 @@ import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import scala.reflect.io.{File, Path}
 
 trait KafkaContainer extends ScalaFutures
   with BeforeAndAfterAll
@@ -74,18 +76,18 @@ trait KafkaContainer extends ScalaFutures
     exec(containerName(), cmd)
   }
 
-  def allowDeletion(): Unit = {
-    val cmd = "echo \"delete.topic.enable=true\" >> /opt/kafka_2.11-0.10.1.0/config/server.properties"
-    log.info("setting delete.topic.enable=true")
-    exec(containerName(), cmd)
-  }
+    def allowDeletion(): Unit = {
+      val cmd = "echo \"delete.topic.enable=true\" >> /opt/kafka_2.11-0.10.1.0/config/server.properties"
+      log.info("setting delete.topic.enable=true")
+      exec(containerName(), cmd)
+    }
 
-  def restartKafka(): Unit = {
-    stopKafka()
-    //stopZookeeper()
-    //startZookeeper()
-    startKafka()
-  }
+    def restartKafka(): Unit = {
+      stopKafka()
+      //stopZookeeper()
+      //startZookeeper()
+      startKafka()
+    }
 
   def stopKafka(): Unit = {
     val cmd = s"$path/kafka-server-stop.sh"
@@ -117,26 +119,25 @@ trait KafkaContainer extends ScalaFutures
 
   private[KafkaContainer] def exec(dockerName: String, cmd: String): String = {
     val arr = Array("sh", "-c", cmd)
-    val execCreation = client.execCreate(dockerName.replace("/", ""), arr, DockerClient.ExecCreateParam.attachStdout(),
-      DockerClient.ExecCreateParam.attachStderr())
+    val execCreation = client.execCreate(dockerName.replace("/", ""), arr, DockerClient.ExecCreateParam.attachStdin(),
+      DockerClient.ExecCreateParam.attachStdout())
     val logMessage = client.execStart(execCreation.id, ExecStartParameter.TTY).readFully()
     log.info(logMessage)
     logMessage
   }
 
-
   def KafkaAdvertisedPort = 9092
 
   val zookeeperDefaultPort = 2181
 
+
   lazy val kafkaContainer: DockerContainer = DockerContainer("spotify/kafka")
     .withPorts(
-      KafkaAdvertisedPort -> Some(KafkaAdvertisedPort),
+      KafkaAdvertisedPort -> Some(9092),
       zookeeperDefaultPort -> Some(zookeeperDefaultPort)
     )
     .withEnv(s"ADVERTISED_PORT=$KafkaAdvertisedPort", s"ADVERTISED_HOST=${dockerExecutor.host}")
     .withReadyChecker(DockerReadyChecker.LogLineContains("kafka entered RUNNING state"))
-
 
   abstract override def dockerContainers: List[DockerContainer] =
     kafkaContainer :: super.dockerContainers

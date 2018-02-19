@@ -1,0 +1,122 @@
+version: "3"
+services:
+  postgres:
+    image: postgres:9.6-alpine
+    container_name: postgres
+    networks:
+      - hydronet
+    environment:
+      - "POSTGRES_DB=docker"
+      - "POSTGRES_USER=docker"
+      - "POSTGRES_PASSWORD=docker"
+
+  manager:
+    image: hydrosphere/serving-manager:latest
+    container_name: manager
+    networks:
+      - hydronet
+    depends_on:
+      - postgres
+      - sidecar
+    environment:
+      - "ADVERTISED_MANAGER_HOST=manager"
+      - "ADVERTISED_MANAGER_PORT=9091"
+      - "DATABASE_HOST=postgres"
+      - "LOCAL_MODEL_PATH=/models"
+      - "SIDECAR_HOST=sidecar"
+      - "NETWORK_NAME=automation_hydronet"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${MODEL_DIRECTORY}:/models
+
+
+  sidecar:
+    image: hydrosphere/serving-sidecar:latest
+    container_name: sidecar
+    ports:
+      - "8080:8080"
+      - "8082:8082"
+      - "8081:8081"
+    networks:
+      - extnet
+      - hydronet
+    environment:
+      - "MANAGER_HOST=manager"
+      - "MANAGER_PORT=9091"
+      - "SERVICE_ID=-20"
+      - "SERVICE_NAME=manager"
+
+  zookeeper:
+    hostname: zookeeper
+    container_name: zookeeper
+    image: wurstmeister/zookeeper
+    networks:
+          - hydronet
+    ports:
+        - "2181:2181"
+  kafka:
+    hostname: kafka
+    container_name: kafka
+    image: wurstmeister/kafka
+    networks:
+          - extnet
+          - hydronet
+    ports:
+      - "19092:19092"
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: localhost
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_ADVERTISED_PROTOCOL_NAME: OUTSIDE
+      KAFKA_PROTOCOL_NAME: INSIDE
+      KAFKA_ADVERTISED_PORT: 19092
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+#  kafka:
+#    image: spotify/kafka:latest
+#    container_name: kafka
+#    hostname: kafka
+#    networks:
+#      - extnet
+#      - hydronet
+#    ports:
+#      - "9092:9092"
+#      - "2181:2181"
+#    environment:
+#      - "ADVERTISED_HOST=kafka"
+#      - "ADVERTISED_PORT=9092"
+
+  kafka_serving:
+    image: hydrosphere/serving-kafka-gateway:latest
+    container_name: serving-kafka-gateway
+    networks:
+      - extnet
+      - hydronet
+    links:
+      - kafka
+      - sidecar
+      - manager
+    depends_on:
+      - sidecar
+      - kafka
+      - manager
+    command: ["/app/wait-for-manager.sh", "sidecar", "8081", "/app/start.sh"]
+    environment:
+      - "SIDECAR_INGRESS_PORT=8080"
+      - "SIDECAR_EGRESS_PORT=8081"
+      - "SIDECAR_ADMIN_PORT=8082"
+      - "SIDECAR_HOST=sidecar"
+      - "KAFKA_HOST=kafka"
+      - "KAFKA_PORT=9092"
+      - "APP_ID=hydro-serving-kafka"
+      - "APP_PORT=9060"
+
+
+networks:
+  hydronet:
+    external:
+      name:  automation_hydronet
+
+  extnet:
+    driver: bridge

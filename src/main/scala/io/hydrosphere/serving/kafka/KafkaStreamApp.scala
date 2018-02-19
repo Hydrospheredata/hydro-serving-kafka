@@ -11,12 +11,11 @@ import io.hydrosphere.serving.tensorflow.api.predict.PredictRequest
 import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
-
-
-
 object KafkaStreamApp extends App with Logging {
 
   import io.hydrosphere.serving.kafka.config.Inject._
+
+  logger.info("Starting kafka serving app")
 
   val flow = Flow()
 
@@ -26,6 +25,7 @@ object KafkaStreamApp extends App with Logging {
   }
 
 }
+
 
 object Flow {
   def apply()(

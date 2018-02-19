@@ -38,6 +38,7 @@ class AppSpec extends FlatSpec
       classOf[KafkaServingMessageSerde])
 
     testProducer = new TestProducer[Integer, KafkaServingMessage](
+      hostAndPort = "localhost:9092",
       keySerializer = classOf[IntegerSerializer],
       valSerializer = classOf[KafkaServingMessageSerializer])
   }
