@@ -118,12 +118,8 @@ node("JenkinsOnDemand") {
 
         stage('Push docker') {
             imageVersion = currentVersion()
-            for (int i = 0; i < versions.size(); i++) { //TODO switch to each after JENKINS-26481
-                def ver = versions.get(i)
-
-                sh "docker tag hydrosphere/serving-kafka-gateway:${ver}-latest hydrosphere/serving-kafka-gateway:${ver}-${imageVersion}"
-                sh "docker push hydrosphere/serving-kafka-gateway:${ver}-${imageVersion}"
-            }
+            sh "docker tag hydrosphere/serving-kafka-gateway:latest hydrosphere/serving-kafka-gateway:${imageVersion}"
+            sh "docker push hydrosphere/serving-kafka-gateway:${imageVersion}"
         }
 
         stage("Create tag"){
@@ -146,10 +142,7 @@ node("JenkinsOnDemand") {
     } else {
         stage('Push docker') {
             if (env.BRANCH_NAME == "master") {
-                for (int i = 0; i < versions.size(); i++) { //TODO switch to each after JENKINS-26481
-                    def ver = versions.get(i)
-                    sh "docker push hydrosphere/serving-kafka-gateway:${ver}-latest"
-                }
+                sh "docker push hydrosphere/serving-kafka-gateway:latest"
             }
         }
     }
