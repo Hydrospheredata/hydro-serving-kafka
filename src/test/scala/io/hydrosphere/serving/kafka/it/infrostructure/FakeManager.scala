@@ -87,7 +87,11 @@ class FakeModel(executionContext: ExecutionContext) extends Logging {
         name = "someApp",
         kafkaStreaming = Seq(KafkaStreaming("testConsumer", "test", "success", "failure")),
         executionGraph = Some(ExecutionGraph(
-          stages = ExecutionStage("first", Some(ModelSignature())) :: ExecutionStage("second", Some(ModelSignature())) :: Nil
+          stages = ExecutionStage("first", Some(ModelSignature(
+            signatureName = "first_signature"
+          ))) :: ExecutionStage("second", Some(ModelSignature(
+            signatureName = "second_signature"
+          ))) :: Nil
         ))
       )
 

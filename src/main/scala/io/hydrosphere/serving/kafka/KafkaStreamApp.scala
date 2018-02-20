@@ -1,12 +1,12 @@
 package io.hydrosphere.serving.kafka
 
 
-import io.hydrosphere.serving.kafka.config.KafkaServingStream
+import io.hydrosphere.serving.kafka.config.{Configuration, KafkaServingStream}
 import org.apache.logging.log4j.scala.Logging
 import io.hydrosphere.serving.kafka.kafka_messages.KafkaServingMessage
 import io.hydrosphere.serving.kafka.predict._
+import io.hydrosphere.serving.kafka.stream.{PredictTransformer, Producer}
 import io.hydrosphere.serving.manager.grpc.applications.ExecutionGraph
-import io.hydrosphere.serving.tensorflow.api.predict.PredictRequest
 
 import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
@@ -31,7 +31,9 @@ object Flow {
   def apply()(
     implicit kafkaServing: KafkaServingStream,
     applicationUpdateService: UpdateService[Seq[Application]],
-    predictor: PredictService
+    predictor: PredictService,
+    config: Configuration,
+    producer: Producer[Array[Byte], KafkaServingMessage]
   ):Flow = {
     val flow = new Flow()
     flow.start()
@@ -42,7 +44,9 @@ object Flow {
 class Flow()(
   implicit kafkaServing: KafkaServingStream,
   applicationUpdateService: UpdateService[Seq[Application]],
-  predictor: PredictService
+  predictor: PredictService,
+  config: Configuration,
+  producer: Producer[Array[Byte], KafkaServingMessage]
 ) extends Logging {
 
   implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
@@ -65,9 +69,7 @@ class Flow()(
 
       appAndStream._2
         .filterV(_.requestOrError.isRequest)
-        .mapV(message => (message.traceId, PredictRequest(None, message.requestOrError.request.get.inputs)))
-        .mapV(message => (message._1, predictor.predictByGraph(message._2, app)))
-        .mapAsync(message => predictor.report(message._1, message._2))
+        .transformV(() => new PredictTransformer(predictor, app))
         .branchV(_.requestOrError.isRequest, _.requestOrError.isError)
     }
 
@@ -76,7 +78,7 @@ class Flow()(
 
   def stop(): Unit = {
     kafkaServing.stop()
-
+    producer.close()
     latch.countDown()
   }
 

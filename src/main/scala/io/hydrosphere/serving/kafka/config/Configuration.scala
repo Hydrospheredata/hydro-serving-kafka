@@ -4,7 +4,7 @@ import com.typesafe.config.Config
 import org.apache.logging.log4j.scala.Logging
 
 
-case class KafkaConfiguration(advertisedHost: String, advertisedPort: Int)
+case class KafkaConfiguration(advertisedHost: String, advertisedPort: Int, shadowTopic:String = "shadow_topic")
 case class ApplicationConfig(appId: String, port: Int)
 case class SidecarConfig(host: String, egressPort: Int, ingressPort:Int, adminPort:Int)
 

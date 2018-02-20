@@ -3,9 +3,9 @@ package io.hydrosphere.serving.kafka.it.infrostructure
 import io.grpc.{ManagedChannel, ManagedChannelBuilder}
 import io.hydrosphere.serving.kafka.config.{ApplicationConfig, Configuration, KafkaConfiguration, SidecarConfig}
 import io.hydrosphere.serving.kafka.kafka_messages.KafkaServingMessage
-import io.hydrosphere.serving.kafka.mappers.KafkaServingMessageSerde
+import io.hydrosphere.serving.kafka.mappers.{KafkaServingMessageSerde, KafkaServingMessageSerializer}
 import io.hydrosphere.serving.kafka.predict.{PredictService, PredictServiceImpl, XDSApplicationUpdateService}
-import io.hydrosphere.serving.kafka.stream.KafkaStreamer
+import io.hydrosphere.serving.kafka.stream.{KafkaStreamer, Producer}
 import org.apache.kafka.common.serialization.Serdes
 
 object TestInject {
@@ -24,6 +24,11 @@ object TestInject {
   implicit val applicationUpdater = new XDSApplicationUpdateService()(appChanel)
 
   implicit val streamer = new KafkaStreamer[Array[Byte], KafkaServingMessage](Serdes.ByteArray().getClass, classOf[KafkaServingMessageSerde])
+
+  implicit lazy val kafkaProducer = Producer[Array[Byte], KafkaServingMessage](
+    config,
+    Serdes.ByteArray().serializer().getClass,
+    classOf[KafkaServingMessageSerializer])
 
 
 }

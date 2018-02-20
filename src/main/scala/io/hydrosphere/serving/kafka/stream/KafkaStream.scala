@@ -1,6 +1,7 @@
 package io.hydrosphere.serving.kafka.stream
 
-import org.apache.kafka.streams.kstream.{KStream, Predicate, ValueMapper}
+import org.apache.kafka.streams.kstream._
+import org.apache.kafka.streams.processor.ProcessorContext
 import org.apache.logging.log4j.scala.Logging
 
 
@@ -21,6 +22,13 @@ class KafkaStream[K, V](val underlying: KStream[K, V]) extends Stream[K, V] with
       override def test(key: K, value: V): Boolean = f(value)
     })
   }
+
+  override def transformV[VR](getTransformer:() => ValueTransformer[V, VR]): KafkaStream[K, VR] = KafkaStream {
+    underlying.transformValues(new ValueTransformerSupplier[V, VR]{
+      override def get() = getTransformer()
+    })
+  }
+
 
   def branchV(success: V => Boolean, failure: V => Boolean): DoubleStream[K, V] = {
     val array = underlying.branch(
