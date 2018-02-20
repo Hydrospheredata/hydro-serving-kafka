@@ -1,8 +1,5 @@
 package io.hydrosphere.serving.kafka.config
 
-import java.util.Properties
-import javassist.bytecode.ByteArray
-
 import com.typesafe.config.ConfigFactory
 import io.grpc.{ManagedChannel, ManagedChannelBuilder}
 import io.hydrosphere.serving.kafka.kafka_messages.KafkaServingMessage

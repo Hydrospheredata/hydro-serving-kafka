@@ -2,8 +2,7 @@ package io.hydrosphere.serving.kafka.mappers
 
 import java.util
 
-import io.hydrosphere.serving.kafka.kafka_messages.{KafkaError, KafkaServingMessage}
-import io.hydrosphere.serving.kafka.kafka_messages.KafkaServingMessage.RequestOrError
+import io.hydrosphere.serving.kafka.kafka_messages.KafkaServingMessage
 import org.apache.kafka.common.serialization.{Deserializer, Serde, Serializer}
 import io.hydrosphere.serving.kafka.utils.KafkaMessageUtils._
 

@@ -32,7 +32,7 @@ trait PredictService {
     stages match {
       case Nil => Future.successful(KafkaMessageUtils.withException("Empty initial request"))::Nil
       case head :: tail =>
-        val withAppId = KafkaServingMessage(
+        val enrichedMessage = KafkaServingMessage(
           meta = initial.meta.map(_.withApplicationId(app.name)),
           requestOrError = initial.requestOrError match {
             case RequestOrError.Request(r) => {
@@ -47,8 +47,8 @@ trait PredictService {
             case other:Any => other
           }
         )
-        val firstFuture = Future.successful(withAppId)
-        predictRec(fetchPredictAndEnrich(firstFuture, head)::Nil, tail)
+        val firstMessage = Future.successful(enrichedMessage)
+        predictRec(fetchPredictAndEnrich(firstMessage, head)::Nil, tail)
     }
   }
 
