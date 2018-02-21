@@ -12,15 +12,11 @@ object KafkaStream {
 class KafkaStream[K, V](val underlying: KStream[K, V]) extends Stream[K, V] with Logging {
 
   override def mapV[V1](f: V => V1): KafkaStream[K, V1] = KafkaStream {
-    underlying.mapValues[V1](new ValueMapper[V, V1] {
-      override def apply(value: V): V1 = f(value)
-    })
+    underlying.mapValues[V1]((value: V) => f(value))
   }
 
   override def filterV(f: V => Boolean): KafkaStream[K, V] = KafkaStream {
-    underlying.filter(new Predicate[K, V] {
-      override def test(key: K, value: V): Boolean = f(value)
-    })
+    underlying.filter((key: K, value: V) => f(value))
   }
 
   override def transformV[VR](getTransformer:() => ValueTransformer[V, VR]): KafkaStream[K, VR] = KafkaStream {
@@ -32,12 +28,8 @@ class KafkaStream[K, V](val underlying: KStream[K, V]) extends Stream[K, V] with
 
   def branchV(success: V => Boolean, failure: V => Boolean): DoubleStream[K, V] = {
     val array = underlying.branch(
-      new Predicate[K, V] {
-        override def test(key: K, value: V): Boolean = success(value)
-      },
-      new Predicate[K, V] {
-        override def test(key: K, value: V): Boolean = failure(value)
-      }
+      (key: K, value: V) => success(value),
+      (key: K, value: V) => failure(value)
     )
 
     val successResult = array(0)

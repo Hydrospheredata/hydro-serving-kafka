@@ -7,7 +7,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration.Duration
 
-trait Stream[-K, V] {
+trait Stream[K, V] {
 
   def mapV[V1](f: V => V1): Stream[K, V1]
   def filterV(f: V => Boolean):Stream[K, V]

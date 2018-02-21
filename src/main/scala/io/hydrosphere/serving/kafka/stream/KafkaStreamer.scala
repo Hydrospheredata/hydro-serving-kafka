@@ -11,7 +11,7 @@ import org.apache.kafka.streams.kstream.KStream
 import org.apache.logging.log4j.scala.Logging
 
 import scala.collection._
-import scala.collection.convert.decorateAsScala._
+import scala.collection.JavaConverters._
 import java.util.concurrent.ConcurrentHashMap
 
 case class AppTopicsConfig(outTopic: String, errorTopic: Option[String])
