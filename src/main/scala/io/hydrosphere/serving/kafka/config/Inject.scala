@@ -1,11 +1,13 @@
 package io.hydrosphere.serving.kafka.config
 
 import com.typesafe.config.ConfigFactory
-import io.grpc.{ManagedChannel, ManagedChannelBuilder}
+import io.grpc.{ManagedChannel, ManagedChannelBuilder, ServerBuilder}
+import io.hydrosphere.serving.kafka.grpc.PredictionGrpcApi
 import io.hydrosphere.serving.kafka.kafka_messages.KafkaServingMessage
 import io.hydrosphere.serving.kafka.mappers.{KafkaServingMessageSerde, KafkaServingMessageSerializer}
 import io.hydrosphere.serving.kafka.predict.{PredictService, PredictServiceImpl, XDSApplicationUpdateService}
 import io.hydrosphere.serving.kafka.stream.Producer
+import io.hydrosphere.serving.tensorflow.api.prediction_service.PredictionServiceGrpc
 import org.apache.kafka.common.serialization.Serdes
 
 object Inject {
@@ -24,6 +26,8 @@ object Inject {
     appConfig,
     Serdes.ByteArray().serializer().getClass,
     classOf[KafkaServingMessageSerializer])
+
+  implicit val predictionApi = new PredictionGrpcApi
 
 }
 

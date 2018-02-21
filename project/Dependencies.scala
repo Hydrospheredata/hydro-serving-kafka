@@ -3,7 +3,7 @@ import sbt._
 object Dependencies {
 
   val log4j2Version = "2.10.0"
-  val scalaTestVersion = "3.0.3"
+  val scalaTestVersion = "3.0.4"
   val kafkaApiVersion = "1.0.0"
   val servingGrpcScala = "0.0.13"
 

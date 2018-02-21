@@ -14,6 +14,7 @@ import scala.collection._
 import scala.collection.JavaConverters._
 import java.util.concurrent.ConcurrentHashMap
 
+
 case class AppTopicsConfig(outTopic: String, errorTopic: Option[String])
 
 
@@ -72,7 +73,6 @@ class KafkaStreamer[K, V](keySerde: Class[_ <: Serde[K]], valSerde: Class[_ <: S
       logger.info(
         s"Application streaming started for $application")
     }
-
   }
 
   override def streamForAll[R]
@@ -99,6 +99,13 @@ class KafkaStreamer[K, V](keySerde: Class[_ <: Serde[K]], valSerde: Class[_ <: S
     afterUpdate(version)
   }
 
+  def inTopicsByApplicationName(appName:String):Set[String] = store.keySet
+      .view
+      .filter(_.name == appName)
+      .map(_.inTopic)
+      .filter(_.isDefined)
+      .map(_.get)
+      .toSet
 
 }
 

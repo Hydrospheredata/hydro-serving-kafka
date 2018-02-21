@@ -10,14 +10,5 @@
         <Root level="INFO">
             <AppenderRef ref="Console"/>
         </Root>
-        <!--<Logger name="io.hydrosphere.serving" level="INFO">-->
-            <!--<AppenderRef ref="Console"/>-->
-        <!--</Logger>-->
-        <Logger name="com.spotify.docker.client.DockerCertificates" level="DEBUG">
-            <AppenderRef ref="Console"/>
-        </Logger>
-        <Logger name="org.apache.http.client.protocol.RequestAddCookies" level="DEBUG">
-            <AppenderRef ref="Console"/>
-        </Logger>
     </Loggers>
 </Configuration>
