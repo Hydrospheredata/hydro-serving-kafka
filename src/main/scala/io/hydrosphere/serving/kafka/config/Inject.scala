@@ -9,6 +9,7 @@ import io.hydrosphere.serving.kafka.predict.{PredictService, PredictServiceImpl,
 import io.hydrosphere.serving.kafka.stream.Producer
 import io.hydrosphere.serving.tensorflow.api.prediction_service.PredictionServiceGrpc
 import org.apache.kafka.common.serialization.Serdes
+import org.apache.kafka.streams.StreamsBuilder
 
 object Inject {
 
@@ -21,6 +22,7 @@ object Inject {
 
   implicit lazy val predictService: PredictService = new PredictServiceImpl
   implicit lazy val applicationUpdater = new XDSApplicationUpdateService()
+  implicit lazy val streamsBuilder = new StreamsBuilder()
   implicit lazy val kafkaServing = new KafkaServingStream(Serdes.ByteArray().getClass, classOf[KafkaServingMessageSerde])
   implicit lazy val kafkaProducer = Producer[Array[Byte], KafkaServingMessage](
     appConfig,

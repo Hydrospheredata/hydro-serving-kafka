@@ -40,7 +40,7 @@ class PredictServiceSpec
     result.map(_.getRequest.inputs.values.map(_.versionNumber)).flatten shouldBe(Seq(1))
   }
 
-  "PredictService" should "return successful response for several stage" in {
+  it should "return successful response for several stage" in {
 
     val stages:List[ExecutionStage] = ExecutionStage("success", Some(signature("success"))) ::
       ExecutionStage("success", Some(signature("success"))) ::
@@ -54,7 +54,7 @@ class PredictServiceSpec
 
 
 
-  "PredictService" should "return exception response for one stage" in {
+  it should "return exception response for one stage" in {
 
     val stages:List[ExecutionStage] = ExecutionStage("failure", Some(signature("failure"))) :: Nil
     val result = resultList(stages)
@@ -62,7 +62,7 @@ class PredictServiceSpec
     result.head.requestOrError.isError shouldBe(true)
   }
 
-  "PredictService" should "return exception response for several stage" in {
+  it should "return exception response for several stage" in {
 
     val stages:List[ExecutionStage] = ExecutionStage("key1", Some(signature("success"))) ::
       ExecutionStage("failure", Some(signature("failure"))) ::

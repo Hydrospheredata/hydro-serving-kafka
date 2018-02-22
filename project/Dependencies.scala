@@ -41,7 +41,8 @@ object Dependencies {
       "org.apache.kafka" % "kafka-clients" % kafkaApiVersion % Test,
       "org.apache.kafka" % "kafka-streams" % kafkaApiVersion,
       "com.fasterxml.jackson.core" % "jackson-core" % "2.9.2",
-      "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
+      "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
+      "org.mockito" % "mockito-all" % "1.8.4" % "test"
     )).map(_.exclude("org.slf4j", "slf4j-jdk14"))
     .union(commonDependencies)
 
