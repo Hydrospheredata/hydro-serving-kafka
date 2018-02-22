@@ -1,12 +1,15 @@
 package io.hydrosphere.serving.kafka
 
 
+import io.grpc.{Server, ServerBuilder}
 import io.hydrosphere.serving.kafka.config.{Configuration, KafkaServingStream}
+import io.hydrosphere.serving.kafka.grpc.PredictionGrpcApi
 import org.apache.logging.log4j.scala.Logging
 import io.hydrosphere.serving.kafka.kafka_messages.KafkaServingMessage
 import io.hydrosphere.serving.kafka.predict._
 import io.hydrosphere.serving.kafka.stream.{PredictTransformer, Producer}
 import io.hydrosphere.serving.manager.grpc.applications.ExecutionGraph
+import io.hydrosphere.serving.tensorflow.api.prediction_service.PredictionServiceGrpc
 
 import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
@@ -32,9 +35,10 @@ object Flow {
     implicit kafkaServing: KafkaServingStream,
     applicationUpdateService: UpdateService[Seq[Application]],
     predictor: PredictService,
+    predictionApi: PredictionGrpcApi,
     config: Configuration,
     producer: Producer[Array[Byte], KafkaServingMessage]
-  ):Flow = {
+  ): Flow = {
     val flow = new Flow()
     flow.start()
     flow
@@ -46,22 +50,19 @@ class Flow()(
   applicationUpdateService: UpdateService[Seq[Application]],
   predictor: PredictService,
   config: Configuration,
+  predictionApi: PredictionGrpcApi,
   producer: Producer[Array[Byte], KafkaServingMessage]
 ) extends Logging {
 
   implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
 
 
-
-  import java.util.concurrent.CountDownLatch
-
-  private[this] val latch = new CountDownLatch(1)
+  private[this] var server:Server = _
 
   def start(): Unit = {
     logger.info("starting kafka serving app")
-
     kafkaServing
-      .streamForAll[KafkaServingMessage]{ appAndStream =>
+      .streamForAll[KafkaServingMessage] { appAndStream =>
 
       val app = appAndStream._1
 
@@ -73,13 +74,28 @@ class Flow()(
         .branchV(_.requestOrError.isRequest, _.requestOrError.isError)
     }
 
-    latch.await()
+    server = ServerBuilder.forPort(config.application.port)
+      .addService(PredictionServiceGrpc.bindService(predictionApi, scala.concurrent.ExecutionContext.global))
+      .build()
+
+    server.start()
+    logger.info(s"server on port ${server.getPort} started")
+
+    // latch.await()
   }
 
   def stop(): Unit = {
+    if (!server.isShutdown) {
+      val port = server.getPort
+      server.shutdownNow()
+      logger.info(s"grpc server on port $port stopped")
+    }
     kafkaServing.stop()
     producer.close()
-    latch.countDown()
+    if (!server.isTerminated) {
+      server.awaitTermination()
+    }
+    // latch.countDown()
   }
 
 }

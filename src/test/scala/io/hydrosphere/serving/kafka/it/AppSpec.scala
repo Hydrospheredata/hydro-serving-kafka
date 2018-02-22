@@ -2,6 +2,7 @@ package io.hydrosphere.serving.kafka.it
 
 import java.util.concurrent.TimeUnit
 
+import io.grpc.{ManagedChannel, ManagedChannelBuilder}
 import io.hydrosphere.serving.contract.model_signature.ModelSignature
 import io.hydrosphere.serving.kafka.Flow
 import io.hydrosphere.serving.kafka.it.infrostructure.{FakeModel, KafkaContainer, TestConsumer}
@@ -13,15 +14,17 @@ import io.hydrosphere.serving.tensorflow.api.predict.PredictRequest
 import io.hydrosphere.serving.tensorflow.tensor.TensorProto
 import io.hydrosphere.serving.tensorflow.types.DataType
 import org.apache.kafka.common.serialization._
-import org.scalatest.{BeforeAndAfter, FlatSpec, Matchers, Suite}
+import org.scalatest._
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
-import io.hydrosphere.serving.kafka.it.infrostructure.TestInject._
 import io.hydrosphere.serving.kafka.stream.Producer
+import io.hydrosphere.serving.tensorflow.api.model.ModelSpec
+import io.hydrosphere.serving.tensorflow.api.prediction_service.PredictionServiceGrpc
 
 class AppSpec extends FlatSpec
   with KafkaContainer
+  with GivenWhenThen
   with Matchers
   with BeforeAndAfter {
   self: Suite =>
@@ -59,29 +62,61 @@ class AppSpec extends FlatSpec
     ))
   )
 
-  "App" should "Read values from kafka, save predicted values" in {
+  "Application" should "accept kafka messages" in {
 
+    withApplication { _ =>
+
+      val rpcChanel: ManagedChannel = ManagedChannelBuilder
+        .forAddress("localhost", 56789)
+        .usePlaintext(true)
+        .build
+      val stub = PredictionServiceGrpc.stub(rpcChanel)
+
+      TimeUnit.SECONDS.sleep(2)
+
+      And("valid messages with request been published via kafka")
+      Range(0, 10).foreach { i =>
+        testProducer.send("test", i, message(i))
+      }
+
+
+      And("valid test messages been published via grpc")
+      Range(0, 10).foreach { i =>
+        val result = stub.predict(message(i).getRequest.withModelSpec(
+          ModelSpec(
+            name = "someApp"
+          )
+        ))
+
+        val responce = Await.result(result, 10 second)
+      }
+
+    }
+
+    Then("All result predictions should be processed and published to 'successful' topic")
+    testConsumer.out.size shouldBe 20
+    testConsumer.out.filter(_.requestOrError.isRequest).size shouldBe 20
+
+    And("inner model stage computation results should be published to 'shadow' topic")
+    testConsumer.shadow.size shouldBe 40
+    testConsumer.shadow.filter(_.requestOrError.isRequest).size shouldBe 40
+  }
+
+  def withApplication(action: Flow => Unit): Unit = {
+    When("test Application been started")
+    import io.hydrosphere.serving.kafka.it.infrostructure.TestInject._
     var flow: Flow = new Flow()
     try {
       Future {
         flow.start()
       }
 
-
-      Range(0, 10).foreach { i =>
-        testProducer.send("test", i, message(i))
-      }
+      action(flow)
 
       TimeUnit.SECONDS sleep 5
     } finally {
       flow.stop()
     }
-
-    testConsumer.out.size shouldBe 10
-    testConsumer.out.filter(_.requestOrError.isRequest).size  shouldBe 10
-    testConsumer.shadow.size shouldBe 20
-    testConsumer.shadow.filter(_.requestOrError.isRequest).size  shouldBe 20
-
   }
 
 
@@ -98,3 +133,4 @@ class AppSpec extends FlatSpec
   }
 
 }
+

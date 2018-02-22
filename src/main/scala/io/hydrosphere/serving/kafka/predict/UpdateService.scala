@@ -33,6 +33,6 @@ trait UpdateService[T] {
     handlers foreach(f => f(item, version))
   }
 
-  def doOnNext(item:T, version:Version):Unit = doAction(item, version,  upsertHandlers)
+  protected def doOnNext(item:T, version:Version):Unit = doAction(item, version,  upsertHandlers)
 
 }

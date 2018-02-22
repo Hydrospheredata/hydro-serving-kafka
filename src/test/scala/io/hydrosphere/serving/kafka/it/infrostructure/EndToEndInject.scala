@@ -7,6 +7,7 @@ import io.hydrosphere.serving.kafka.mappers.KafkaServingMessageSerde
 import io.hydrosphere.serving.kafka.predict.{PredictService, PredictServiceImpl, XDSApplicationUpdateService}
 import io.hydrosphere.serving.kafka.stream.KafkaStreamer
 import org.apache.kafka.common.serialization.Serdes
+import org.apache.kafka.streams.StreamsBuilder
 
 object EndToEndInject {
 
@@ -19,6 +20,7 @@ object EndToEndInject {
   implicit val chanel: ManagedChannel = ManagedChannelBuilder.forAddress("localhost", 8081).usePlaintext(true).build
   implicit val predictService: PredictService = new PredictServiceImpl
   implicit val applicationUpdater = new XDSApplicationUpdateService()
+  implicit lazy val streamsBuilder = new StreamsBuilder()
   implicit val streamer = new KafkaStreamer[Array[Byte], KafkaServingMessage](Serdes.ByteArray().getClass, classOf[KafkaServingMessageSerde])
 
 

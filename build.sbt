@@ -2,7 +2,7 @@ import sbt._
 
 name := "hydro-serving-kafka"
 
-val scalaCommonVersion = "2.11.11"
+val scalaCommonVersion = "2.12.4"
 
 enablePlugins(DockerPlugin)
 
