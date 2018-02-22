@@ -1,6 +1,7 @@
 package io.hydrosphere.serving.kafka
 
 import io.hydrosphere.serving.contract.model_signature.ModelSignature
+import io.hydrosphere.serving.kafka.kafka_messages.{KafkaMessageMeta, KafkaServingMessage}
 import io.hydrosphere.serving.kafka.predict.{Application, PredictService}
 import io.hydrosphere.serving.manager.grpc.applications.{ExecutionGraph, ExecutionStage}
 import io.hydrosphere.serving.tensorflow.api.predict.{PredictRequest, PredictResponse}
@@ -33,59 +34,53 @@ class PredictServiceSpec
 
   "PredictService" should "return successful response for one stage" in {
 
-    val stages:Seq[ExecutionStage] = ExecutionStage("success", Some(signature("success"))) :: Nil
-    val predictor = new PredictServiceStub(stages)
-
-
-    val response = predictor.predictByGraph(new PredictRequest(inputs = input), app(stages))
-
-    val result = predictor.report("traceId", response)
-
-    Await.result(result, 1 second).requestOrError.isRequest shouldBe true
-    Await.result(result, 1 second).requestOrError.request.get.inputs shouldBe input
+    val stages:List[ExecutionStage] = ExecutionStage("success", Some(signature("success"))) :: Nil
+    val result = resultList(stages)
+    result.size shouldBe(stages.size)
+    result.map(_.getRequest.inputs.values.map(_.versionNumber)).flatten shouldBe(Seq(1))
   }
 
   "PredictService" should "return successful response for several stage" in {
 
-    val stages:Seq[ExecutionStage] = ExecutionStage("success", Some(signature("success"))) ::
+    val stages:List[ExecutionStage] = ExecutionStage("success", Some(signature("success"))) ::
       ExecutionStage("success", Some(signature("success"))) ::
       ExecutionStage("success", Some(signature("success"))) :: Nil
-    val predictor = new PredictServiceStub(stages)
-
-    val response = predictor.predictByGraph(new PredictRequest(inputs = input), app(stages))
-
-    val result = predictor.report("traceId", response)
-
-    Await.result(result, 1 second).requestOrError.isRequest shouldBe true
-    Await.result(result, 1 second).requestOrError.request.get.inputs shouldBe input
+    val result = resultList(stages)
+    result.size shouldBe(stages.size)
+    val success = result.filter(_.requestOrError.isRequest)
+    success.size shouldBe(stages.size)
+    result.map(_.getRequest.inputs.values.map(_.versionNumber)).flatten shouldBe(Seq(3,2,1))
   }
+
+
 
   "PredictService" should "return exception response for one stage" in {
 
-    val stages:Seq[ExecutionStage] = ExecutionStage("failure", Some(signature("failure"))) :: Nil
-    val predictor = new PredictServiceStub(stages)
-
-    val response = predictor.predictByGraph(new PredictRequest(inputs = input), app(stages))
-
-    val result = predictor.report("traceId", response)
-
-
-    Await.result(result, 1 second).requestOrError.isError shouldBe true
+    val stages:List[ExecutionStage] = ExecutionStage("failure", Some(signature("failure"))) :: Nil
+    val result = resultList(stages)
+    result.size shouldBe(stages.size)
+    result.head.requestOrError.isError shouldBe(true)
   }
 
   "PredictService" should "return exception response for several stage" in {
 
-    val stages:Seq[ExecutionStage] = ExecutionStage("key1", Some(signature("success"))) ::
+    val stages:List[ExecutionStage] = ExecutionStage("key1", Some(signature("success"))) ::
       ExecutionStage("failure", Some(signature("failure"))) ::
       ExecutionStage("key3", Some(signature("success"))) :: Nil
+    val result = resultList(stages)
+    result.size shouldBe(stages.size)
+    result.map(_.requestOrError.isError) shouldBe(Seq(true, true, false))
+  }
 
+  def resultList(stages:List[ExecutionStage]):List[KafkaServingMessage] = {
     val predictor = new PredictServiceStub(stages)
+    val request = new PredictRequest(inputs = input)
+    val message = KafkaServingMessage()
+      .withRequest(request)
+      .withMeta(KafkaMessageMeta())
 
-    val response = predictor.predictByGraph(new PredictRequest(inputs = input), app(stages))
-
-    val result = predictor.report("traceId", response)
-
-    Await.result(result, 1 second).requestOrError.isError shouldBe true
+    val response = predictor.predictByGraph(message, app(stages))
+    Await.result(Future.sequence(response), 1 second)
   }
 
   class PredictServiceStub(stages: Seq[ExecutionStage]) extends PredictService {
@@ -94,7 +89,9 @@ class PredictServiceSpec
       case "failure" => Future.failed(new RuntimeException("Some failure"))
       case _ => Future.successful(
         PredictResponse(
-          in.inputs
+          in.inputs.map{case (key, value) =>
+            (key, value.withVersionNumber(value.versionNumber + 1))
+          }
         )
       )
     }

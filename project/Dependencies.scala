@@ -5,7 +5,7 @@ object Dependencies {
   val log4j2Version = "2.8.2"
   val scalaTestVersion = "3.0.3"
   val kafkaApiVersion = "1.0.0"
-  val servingGrpcScala = "0.0.12"
+  val servingGrpcScala = "0.0.13"
 
   lazy val logDependencies = Seq(
     "org.apache.logging.log4j" % "log4j-api" % log4j2Version,
