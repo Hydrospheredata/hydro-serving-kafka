@@ -80,8 +80,8 @@ class Flow()(
 
     server.start()
     logger.info(s"server on port ${server.getPort} started")
+    server.awaitTermination()
 
-    // latch.await()
   }
 
   def stop(): Unit = {
