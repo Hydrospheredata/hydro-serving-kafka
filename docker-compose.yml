@@ -95,6 +95,8 @@ services:
       - kafka
       - sidecar
       - manager
+    ports:
+      - "9060:9060"
     depends_on:
       - sidecar
       - kafka

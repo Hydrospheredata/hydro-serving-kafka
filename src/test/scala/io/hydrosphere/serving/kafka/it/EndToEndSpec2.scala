@@ -3,6 +3,7 @@
 //import java.util.concurrent.TimeUnit
 //
 //import com.google.protobuf.ByteString
+//import io.grpc.{ManagedChannel, ManagedChannelBuilder}
 //import io.hydrosphere.serving.contract.model_signature.ModelSignature
 //import io.hydrosphere.serving.kafka.Flow
 //import io.hydrosphere.serving.kafka.it.infrostructure.{FakeModel, KafkaContainer, TestConsumer}
@@ -13,6 +14,7 @@
 //import io.hydrosphere.serving.manager.grpc.applications.ExecutionStage
 //import io.hydrosphere.serving.tensorflow.api.model.ModelSpec
 //import io.hydrosphere.serving.tensorflow.api.predict.PredictRequest
+//import io.hydrosphere.serving.tensorflow.api.prediction_service.PredictionServiceGrpc
 //import io.hydrosphere.serving.tensorflow.tensor.TensorProto
 //import io.hydrosphere.serving.tensorflow.tensor_shape.TensorShapeProto
 //import io.hydrosphere.serving.tensorflow.types.DataType
@@ -54,14 +56,27 @@
 //
 //  "App" should "Read values from kafka, save predicted values" in {
 //
-//    Range(0, 1).foreach { i =>
+//    Range(0, 10).foreach { i =>
 //      testProducer.send("test", i, message(i))
+//    }
+//
+//    val rpcChanel: ManagedChannel = ManagedChannelBuilder
+//      .forAddress("localhost", 9060)
+//      .usePlaintext(true)
+//      .build
+//    val stub = PredictionServiceGrpc.stub(rpcChanel)
+//
+//    import scala.concurrent.duration._
+//
+//    Range(0, 10).foreach { i =>
+//      val result = stub.predict(message(i).getRequest)
+//      val responce = Await.result(result, 10 second)
 //    }
 //
 //    TimeUnit.SECONDS sleep 5
 //
-//    testConsumer.out.size shouldBe 10
-//    testConsumer.shadow.size shouldBe 30
+//    testConsumer.out.size shouldBe 20
+//    testConsumer.shadow.size shouldBe 60
 //
 //    println(s"in size: ${testConsumer.in.size}")
 //    println(s"out size: ${testConsumer.out.size}")
