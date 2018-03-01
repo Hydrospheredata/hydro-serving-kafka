@@ -76,7 +76,7 @@
 //    TimeUnit.SECONDS sleep 5
 //
 //    testConsumer.out.size shouldBe 20
-//    testConsumer.shadow.size shouldBe 60
+//    testConsumer.shadow.size shouldBe 20
 //
 //    println(s"in size: ${testConsumer.in.size}")
 //    println(s"out size: ${testConsumer.out.size}")

@@ -7,6 +7,8 @@ import io.grpc.{Channel, ConnectivityState, ManagedChannel}
 import io.grpc.stub.StreamObserver
 import io.hydrosphere.serving.manager.grpc.applications.{Application => ProtoApplication}
 import org.apache.logging.log4j.scala.Logging
+import monix.execution.Scheduler.{global => scheduler}
+import scala.concurrent.duration._
 
 import scala.collection.Seq
 import scala.util.Try
@@ -49,7 +51,13 @@ class XDSApplicationUpdateService(implicit chanel: ManagedChannel)
   val typeUrl = "type.googleapis.com/io.hydrosphere.serving.manager.grpc.applications.Application"
 
   val request = new StreamObserver[DiscoveryResponse] {
-    override def onError(t: Throwable): Unit = logger.error("Application stream exception", t)
+    override def onError(t: Throwable): Unit = {
+      logger.error("Application stream exception", t)
+      scheduler.scheduleOnce(1 seconds) {
+        getUpdates()
+      }
+
+    }
 
     override def onCompleted(): Unit = logger.info("Application stream closed")
 
@@ -69,16 +77,39 @@ class XDSApplicationUpdateService(implicit chanel: ManagedChannel)
     }
   }
 
-  val response: StreamObserver[DiscoveryRequest] = xDSStream.streamAggregatedResources(request)
+  @annotation.tailrec
+  private def retry[T](n: Int, sleep:Int = 1)(fn: => T): T = {
+    val r = try { Some(fn) } catch { case e: Exception if n > 1 => None }
+    r match {
+      case Some(x) => x
+      case None => {
+        TimeUnit.SECONDS.sleep(sleep)
+        logger.warn(s"Retrying to connect to stream ${n - 1} time")
+        retry(n - 1)(fn)
+      }
+    }
+  }
 
-  override def getUpdates(version: String): Unit = response.onNext(
+  val response: StreamObserver[DiscoveryRequest] = retry(10){
+    xDSStream.streamAggregatedResources(request)
+  }
+
+  override def getUpdates(): Unit = response.onNext{
+
+    val prevVersion = getVersion()
+
+    logger.info(s"requesting state update. Current version: $prevVersion")
+
     DiscoveryRequest(
-      versionInfo = version,
+      versionInfo = prevVersion,
       node = Some(
         Node(
           //            id="applications"
         )
       ),
       //resourceNames = Seq("one", "two"),
-      typeUrl = "type.googleapis.com/io.hydrosphere.serving.manager.grpc.applications.Application"))
+      typeUrl = "type.googleapis.com/io.hydrosphere.serving.manager.grpc.applications.Application")
+
+  }
+
 }

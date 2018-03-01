@@ -22,7 +22,7 @@ trait Streamer[K,V, StoreKey, StoreValue] extends Logging {
   val store: concurrent.Map[StoreKey, StoreValue] =
     new ConcurrentHashMap[StoreKey, StoreValue]().asScala
 
-  def updateStore[R](stream: StreamFromKey[K,V,R, StoreKey], afterUpdate: Version => Unit)
+  def updateStore[R](stream: StreamFromKey[K,V,R, StoreKey], afterUpdate:  () => Unit)
                     (newState:Seq[StoreKey], version:Version): Unit = {
     val newItems = newState.toSet
     val toDelete = store.filter{case (key, _) => !newItems.contains(key)}
@@ -40,7 +40,7 @@ trait Streamer[K,V, StoreKey, StoreValue] extends Logging {
 
     }}
 
-    afterUpdate(version)
+    afterUpdate()
   }
 
 }

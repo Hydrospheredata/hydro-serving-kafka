@@ -69,8 +69,8 @@ class KafkaStreamer[K, V](keySerde: Class[_ <: Serde[K]], valSerde: Class[_ <: S
 
   override def streamForAll[R]
   (stream: StreamFromApp[K, V, R]): Unit = {
-    updateService.subscribe(updateStore(stream, updateService.getUpdates))
-    updateService.getUpdates("0")
+    updateService.subscribe(updateStore(stream, () => updateService.getUpdates()))
+    updateService.getUpdates()
   }
 
   def itemsById(appName: String): Set[Application] = store.keySet
