@@ -51,9 +51,10 @@ services:
     container_name: zookeeper
     image: wurstmeister/zookeeper
     networks:
-          - hydronet
+      - hydronet
     ports:
-        - "2181:2181"
+      - "2181:2181"
+
   kafka:
     hostname: kafka
     container_name: kafka
@@ -73,19 +74,16 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
-#  kafka:
-#    image: spotify/kafka:latest
-#    container_name: kafka
-#    hostname: kafka
-#    networks:
-#      - extnet
-#      - hydronet
-#    ports:
-#      - "9092:9092"
-#      - "2181:2181"
-#    environment:
-#      - "ADVERTISED_HOST=kafka"
-#      - "ADVERTISED_PORT=9092"
+  managerui:
+    image: hydrosphere/serving-manager-ui:latest
+    container_name: managerui
+    ports:
+      - "8083:80"
+    networks:
+      - extnet
+      - hydronet
+    environment:
+      - "MANAGER_HOST=sidecar:8080"
 
   kafka_serving:
     image: hydrosphere/serving-kafka-gateway:latest
@@ -97,6 +95,8 @@ services:
       - kafka
       - sidecar
       - manager
+    ports:
+      - "9060:9060"
     depends_on:
       - sidecar
       - kafka

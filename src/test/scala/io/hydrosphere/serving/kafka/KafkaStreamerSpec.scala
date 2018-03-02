@@ -19,7 +19,7 @@ class KafkaStreamerSpec
 
   before {
     streamer = new TestStreamer
-    streamer.updateStore(stream, version => {})(Seq(TestItem("1", 1),TestItem("2", 2)), "1")
+    streamer.updateStore(stream, () => {})(Seq(TestItem("1", 1),TestItem("2", 2)), "1")
   }
 
   "KafkaStreamer" should "properly initiate store" in {
@@ -35,7 +35,7 @@ class KafkaStreamerSpec
 
   it should "delete from store unregistered items" in {
 
-    streamer.updateStore(stream, version => {})(Seq(), "2")
+    streamer.updateStore(stream, () => {})(Seq(), "2")
 
     Then("shouldn't find removed or uncreated apps")
     streamer.itemsById("1") shouldBe Set()
@@ -44,7 +44,7 @@ class KafkaStreamerSpec
   }
 
   it should "properly update values" in {
-    streamer.updateStore(stream, version => {})(Seq(TestItem("3", 33),TestItem("2", 22)), "2")
+    streamer.updateStore(stream, () => {})(Seq(TestItem("3", 33),TestItem("2", 22)), "2")
 
     Then("shouldn't find removed or uncreated apps")
     streamer.itemsById("1") shouldBe Set()

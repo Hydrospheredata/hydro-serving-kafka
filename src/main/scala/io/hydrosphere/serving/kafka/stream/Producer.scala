@@ -3,6 +3,7 @@ package io.hydrosphere.serving.kafka.stream
 import java.util.Properties
 
 import io.hydrosphere.serving.kafka.config.Configuration
+import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.producer.{Callback, KafkaProducer, ProducerRecord, RecordMetadata}
 import org.apache.kafka.common.serialization.Serializer
 
@@ -22,7 +23,7 @@ class Producer[K,V](hostAndPort:String,
                         keySerializer:Class[_ <: Serializer[K]],
                         valSerializer:Class[_ <: Serializer[V]]) {
   val props = new Properties()
-  props.put("bootstrap.servers", hostAndPort)
+  props.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, hostAndPort)
   props.put("key.serializer", keySerializer.getName)
   props.put("value.serializer", valSerializer.getName)
 

@@ -38,6 +38,7 @@ object Dependencies {
     .union(hydroserving)
     .union(Seq(
       "org.apache.kafka" %% "kafka" % kafkaApiVersion,
+      "io.monix" %% "monix" % "2.3.3",
       "org.apache.kafka" % "kafka-clients" % kafkaApiVersion % Test,
       "org.apache.kafka" % "kafka-streams" % kafkaApiVersion,
       "com.fasterxml.jackson.core" % "jackson-core" % "2.9.2",
