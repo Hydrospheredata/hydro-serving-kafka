@@ -5,13 +5,13 @@
 [ -z "$SIDECAR_INGRESS_PORT" ] && SIDECAR_INGRESS_PORT="8080"
 [ -z "$SIDECAR_EGRESS_PORT" ] && SIDECAR_EGRESS_PORT="8081"
 [ -z "$SIDECAR_ADMIN_PORT" ] && SIDECAR_ADMIN_PORT="8082"
-[ -z "$SIDECAR_HOST" ] && SIDECAR_HOST="localhost"
+[ -z "$SIDECAR_HOST" ] && SIDECAR_HOST="sidecar"
 
-[ -z "$KAFKA_HOST" ] && KAFKA_HOST="localhost"
+[ -z "$KAFKA_HOST" ] && KAFKA_HOST="kafka"
 [ -z "$KAFKA_PORT" ] && KAFKA_PORT="9092"
 
 [ -z "$APP_ID" ] && APP_ID="hydro-serving-kafka"
-[ -z "$APP_PORT" ] && APP_PORT="9060"
+[ -z "$APP_PORT" ] && APP_PORT="9091"
 
 JAVA_OPTS="-Xmx$JAVA_XMX -Xms$JAVA_XMX"
 APP_OPTS=""

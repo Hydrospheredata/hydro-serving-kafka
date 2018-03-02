@@ -37,24 +37,26 @@ dockerfile in docker := {
   val artifactTargetPath = s"/app/app.jar"
 
   new Dockerfile {
-    from("anapsix/alpine-java:8")
+    from("openjdk:8u151-jre-alpine")
 
     env("SIDECAR_INGRESS_PORT", "8080")
     env("SIDECAR_EGRESS_PORT", "8081")
     env("SIDECAR_ADMIN_PORT", "8082")
-    env("SIDECAR_HOST", "localhost")
-    env("KAFKA_HOST","localhost")
+    env("SIDECAR_HOST", "sidecar")
+    env("KAFKA_HOST","kafka")
     env("KAFKA_PORT","9092")
-    env("APP_PORT", "9060")
+    env("APP_PORT", "9091")
     env("APP_ID", "hydro-serving-kafka")
 
+    label("SERVICE_ID", "-12")
+    label("HS_SERVICE_MARKER", "HS_SERVICE_MARKER")
     label("DEPLOYMENT_TYPE", "APP")
+    label("RUNTIME_ID", "-12")
+    label("SERVICE_NAME", "gateway-kafka")
 
     add(dockerFilesLocation, "/app/")
     add(classpath.files, "/app/lib/")
     add(jarFile, artifactTargetPath)
-
-   // volume("/model")
 
     cmd("/app/start.sh")
   }
