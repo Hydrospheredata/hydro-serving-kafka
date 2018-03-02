@@ -5,7 +5,7 @@ object Dependencies {
   val log4j2Version = "2.10.0"
   val scalaTestVersion = "3.0.4"
   val kafkaApiVersion = "1.0.0"
-  val servingGrpcScala = "0.0.13"
+  val servingGrpcScala = "0.0.15"
 
   lazy val logDependencies = Seq(
     "org.apache.logging.log4j" % "log4j-api" % log4j2Version,
@@ -46,8 +46,4 @@ object Dependencies {
       "org.mockito" % "mockito-all" % "1.8.4" % "test"
     )).map(_.exclude("org.slf4j", "slf4j-jdk14"))
     .union(commonDependencies)
-
-
-
-
 }

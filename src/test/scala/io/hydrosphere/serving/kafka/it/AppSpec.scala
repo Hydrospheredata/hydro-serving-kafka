@@ -2,13 +2,15 @@ package io.hydrosphere.serving.kafka.it
 
 import java.util.concurrent.TimeUnit
 
-import io.grpc.{ManagedChannel, ManagedChannelBuilder}
+import io.grpc.{ClientInterceptors, ManagedChannel, ManagedChannelBuilder}
 import io.hydrosphere.serving.contract.model_signature.ModelSignature
 import io.hydrosphere.serving.kafka.Flow
+import io.hydrosphere.serving.kafka.config.Inject.rpcChanel
 import io.hydrosphere.serving.kafka.it.infrostructure.{FakeModel, KafkaContainer, TestConsumer}
 import io.hydrosphere.serving.kafka.kafka_messages.{KafkaMessageMeta, KafkaServingMessage}
 import io.hydrosphere.serving.kafka.kafka_messages.KafkaServingMessage.RequestOrError
 import io.hydrosphere.serving.kafka.mappers.{KafkaServingMessageSerde, KafkaServingMessageSerializer}
+import io.hydrosphere.serving.kafka.predict.{AuthorityReplacerInterceptor, KafkaTopicServerInterceptor}
 import io.hydrosphere.serving.manager.grpc.applications.ExecutionStage
 import io.hydrosphere.serving.tensorflow.api.predict.PredictRequest
 import io.hydrosphere.serving.tensorflow.tensor.TensorProto
@@ -70,23 +72,26 @@ class AppSpec extends FlatSpec
         .forAddress("localhost", 56789)
         .usePlaintext(true)
         .build
-      val stub = PredictionServiceGrpc.stub(rpcChanel)
+      val stub = PredictionServiceGrpc.stub(ClientInterceptors
+        .intercept(rpcChanel, new AuthorityReplacerInterceptor, new KafkaTopicServerInterceptor))
 
-      TimeUnit.SECONDS.sleep(2)
+      /*TimeUnit.SECONDS.sleep(2)
 
       And("valid messages with request been published via kafka")
       Range(0, 10).foreach { i =>
         testProducer.send("test", i, message(i))
-      }
+      }*/
 
 
       And("valid test messages been published via grpc")
       Range(0, 10).foreach { i =>
-        val result = stub.predict(message(i).getRequest.withModelSpec(
-          ModelSpec(
-            name = "someApp"
-          )
-        ))
+        val result = stub
+          .withOption(KafkaTopicServerInterceptor.KAFKA_TOPIC_KEY, "sDDDD")
+          .predict(message(i).getRequest.withModelSpec(
+            ModelSpec(
+              name = "someApp"
+            )
+          ))
 
         val responce = Await.result(result, 10 second)
       }

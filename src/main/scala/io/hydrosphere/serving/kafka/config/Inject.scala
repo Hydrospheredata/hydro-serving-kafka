@@ -1,13 +1,13 @@
 package io.hydrosphere.serving.kafka.config
 
 import com.typesafe.config.ConfigFactory
-import io.grpc.{ManagedChannel, ManagedChannelBuilder, ServerBuilder}
+import io.grpc._
+import io.hydrosphere.serving.grpc.{AuthorityReplacerInterceptor, KafkaTopicServerInterceptor}
 import io.hydrosphere.serving.kafka.grpc.PredictionGrpcApi
 import io.hydrosphere.serving.kafka.kafka_messages.KafkaServingMessage
 import io.hydrosphere.serving.kafka.mappers.{KafkaServingMessageSerde, KafkaServingMessageSerializer}
-import io.hydrosphere.serving.kafka.predict.{PredictService, PredictServiceImpl, XDSApplicationUpdateService}
+import io.hydrosphere.serving.kafka.predict._
 import io.hydrosphere.serving.kafka.stream.Producer
-import io.hydrosphere.serving.tensorflow.api.prediction_service.PredictionServiceGrpc
 import org.apache.kafka.common.serialization.Serdes
 import org.apache.kafka.streams.StreamsBuilder
 
@@ -15,10 +15,13 @@ object Inject {
 
   implicit lazy val appConfig = Configuration(ConfigFactory.load())
 
-  implicit lazy val rpcChanel: ManagedChannel = ManagedChannelBuilder
+  lazy val rpcChanel: ManagedChannel = ManagedChannelBuilder
     .forAddress(appConfig.sidecar.host, appConfig.sidecar.egressPort)
     .usePlaintext(true)
     .build
+
+  implicit val channel: Channel = ClientInterceptors
+    .intercept(rpcChanel, new AuthorityReplacerInterceptor, new KafkaTopicServerInterceptor)
 
   implicit lazy val predictService: PredictService = new PredictServiceImpl
   implicit lazy val applicationUpdater = new XDSApplicationUpdateService()
