@@ -93,7 +93,7 @@ class Flow()(
     val builder = BuilderWrapper(ServerBuilder.forPort(config.application.port))
       .addService(PredictionServiceGrpc.bindService(predictionApi, scala.concurrent.ExecutionContext.global))
       .intercept(new KafkaTopicServerInterceptor)
-    val server = builder.build
+    server = builder.build
 
     server.start()
     logger.info(s"server on port ${server.getPort} started")
@@ -107,8 +107,7 @@ class Flow()(
       server.shutdownNow()
       logger.info(s"grpc server on port $port stopped")
     }
-    kafkaServing.stop()
-    producer.close()
+
     if (!server.isTerminated) {
       server.awaitTermination()
     }
