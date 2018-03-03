@@ -2,9 +2,11 @@ package io.hydrosphere.serving.kafka.it
 
 import java.util.concurrent.TimeUnit
 
-import io.grpc.{ManagedChannel, ManagedChannelBuilder}
+import io.grpc.{ClientInterceptors, ManagedChannel, ManagedChannelBuilder}
 import io.hydrosphere.serving.contract.model_signature.ModelSignature
+import io.hydrosphere.serving.grpc.{AuthorityReplacerInterceptor, KafkaTopicServerInterceptor}
 import io.hydrosphere.serving.kafka.Flow
+import io.hydrosphere.serving.kafka.config.Inject.rpcChanel
 import io.hydrosphere.serving.kafka.it.infrostructure.{FakeModel, KafkaContainer, TestConsumer}
 import io.hydrosphere.serving.kafka.kafka_messages.{KafkaMessageMeta, KafkaServingMessage}
 import io.hydrosphere.serving.kafka.kafka_messages.KafkaServingMessage.RequestOrError
@@ -70,7 +72,8 @@ class AppSpec extends FlatSpec
         .forAddress("localhost", 56789)
         .usePlaintext(true)
         .build
-      val stub = PredictionServiceGrpc.stub(rpcChanel)
+      val stub = PredictionServiceGrpc.stub(ClientInterceptors
+        .intercept(rpcChanel, new AuthorityReplacerInterceptor, new KafkaTopicServerInterceptor))
 
       TimeUnit.SECONDS.sleep(2)
 
@@ -82,11 +85,13 @@ class AppSpec extends FlatSpec
 
       And("valid test messages been published via grpc")
       Range(0, 10).foreach { i =>
-        val result = stub.predict(message(i).getRequest.withModelSpec(
-          ModelSpec(
-            name = "someApp"
-          )
-        ))
+        val result = stub
+          .withOption(KafkaTopicServerInterceptor.KAFKA_TOPIC_KEY, "shadow_topic")
+          .predict(message(i).getRequest.withModelSpec(
+            ModelSpec(
+              name = "someApp"
+            )
+          ))
 
         val responce = Await.result(result, 10 second)
       }
@@ -94,12 +99,12 @@ class AppSpec extends FlatSpec
     }
 
     Then("All result predictions should be processed and published to 'successful' topic")
-    testConsumer.out.size shouldBe 20
-    testConsumer.out.filter(_.requestOrError.isRequest).size shouldBe 20
+    testConsumer.out.size shouldBe 10
+    testConsumer.out.filter(_.requestOrError.isRequest).size shouldBe 10
 
     And("inner model stage computation results should be published to 'shadow' topic")
-    testConsumer.shadow.size shouldBe 40
-    testConsumer.shadow.filter(_.requestOrError.isRequest).size shouldBe 40
+    testConsumer.shadow.size shouldBe 30
+    testConsumer.shadow.filter(_.requestOrError.isRequest).size shouldBe 30
   }
 
   def withApplication(action: Flow => Unit): Unit = {

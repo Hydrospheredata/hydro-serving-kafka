@@ -16,7 +16,7 @@ trait PredictService {
 
   implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
 
-  def fetchPredict(in: PredictRequest): Future[PredictResponse]
+  def fetchPredict(in: PredictRequest)(stage:String): Future[PredictResponse]
 
   def calculateFirst(initial: KafkaServingMessage, app: Application):(FutureM, List[ExecutionStage]) = {
     val stages = app.executionGraph.get.stages.toList
@@ -50,7 +50,7 @@ trait PredictService {
   def fetchPredictAndEnrich(futureMessage :FutureM, stage:ExecutionStage):FutureM = futureMessage.flatMap {
     prevMessage => prevMessage
       .forNewStage(stage)
-      .applyIfRequest(fetchPredict) recover {case e:Exception =>
+      .applyIfRequest(fetchPredict(_)(stage.stageId)) recover {case e:Exception =>
         prevMessage.withError(
           KafkaError(errorMessage = e.getMessage, lastKnownRequest = prevMessage.requestOrError.request)
         )

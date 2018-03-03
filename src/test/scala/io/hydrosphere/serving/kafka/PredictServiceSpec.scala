@@ -14,13 +14,13 @@ import scala.concurrent.duration._
 
 class PredictServiceSpec
   extends FlatSpec
-  with Matchers {
+    with Matchers {
 
   implicit val ececutionContext: ExecutionContextExecutor = global
 
-  def signature(key:String) = ModelSignature(key)
+  def signature(key: String) = ModelSignature(key)
 
-  def app(stages:Seq[ExecutionStage]) = Application(
+  def app(stages: Seq[ExecutionStage]) = Application(
     executionGraph = Some(ExecutionGraph(stages)),
     name = "SomeApp",
     id = 1,
@@ -34,45 +34,44 @@ class PredictServiceSpec
 
   "PredictService" should "return successful response for one stage" in {
 
-    val stages:List[ExecutionStage] = ExecutionStage("success", Some(signature("success"))) :: Nil
+    val stages: List[ExecutionStage] = ExecutionStage("success", Some(signature("success"))) :: Nil
     val result = resultList(stages)
-    result.size shouldBe(stages.size)
-    result.map(_.getRequest.inputs.values.map(_.versionNumber)).flatten shouldBe(Seq(1))
+    result.size shouldBe (stages.size)
+    result.map(_.getRequest.inputs.values.map(_.versionNumber)).flatten shouldBe (Seq(1))
   }
 
   it should "return successful response for several stage" in {
 
-    val stages:List[ExecutionStage] = ExecutionStage("success", Some(signature("success"))) ::
+    val stages: List[ExecutionStage] = ExecutionStage("success", Some(signature("success"))) ::
       ExecutionStage("success", Some(signature("success"))) ::
       ExecutionStage("success", Some(signature("success"))) :: Nil
     val result = resultList(stages)
-    result.size shouldBe(stages.size)
+    result.size shouldBe (stages.size)
     val success = result.filter(_.requestOrError.isRequest)
-    success.size shouldBe(stages.size)
-    result.map(_.getRequest.inputs.values.map(_.versionNumber)).flatten shouldBe(Seq(3,2,1))
+    success.size shouldBe (stages.size)
+    result.map(_.getRequest.inputs.values.map(_.versionNumber)).flatten shouldBe (Seq(3, 2, 1))
   }
-
 
 
   it should "return exception response for one stage" in {
 
-    val stages:List[ExecutionStage] = ExecutionStage("failure", Some(signature("failure"))) :: Nil
+    val stages: List[ExecutionStage] = ExecutionStage("failure", Some(signature("failure"))) :: Nil
     val result = resultList(stages)
-    result.size shouldBe(stages.size)
-    result.head.requestOrError.isError shouldBe(true)
+    result.size shouldBe (stages.size)
+    result.head.requestOrError.isError shouldBe (true)
   }
 
   it should "return exception response for several stage" in {
 
-    val stages:List[ExecutionStage] = ExecutionStage("key1", Some(signature("success"))) ::
+    val stages: List[ExecutionStage] = ExecutionStage("key1", Some(signature("success"))) ::
       ExecutionStage("failure", Some(signature("failure"))) ::
       ExecutionStage("key3", Some(signature("success"))) :: Nil
     val result = resultList(stages)
-    result.size shouldBe(stages.size)
-    result.map(_.requestOrError.isError) shouldBe(Seq(true, true, false))
+    result.size shouldBe (stages.size)
+    result.map(_.requestOrError.isError) shouldBe (Seq(true, true, false))
   }
 
-  def resultList(stages:List[ExecutionStage]):List[KafkaServingMessage] = {
+  def resultList(stages: List[ExecutionStage]): List[KafkaServingMessage] = {
     val predictor = new PredictServiceStub(stages)
     val request = new PredictRequest(inputs = input)
     val message = KafkaServingMessage()
@@ -85,11 +84,11 @@ class PredictServiceSpec
 
   class PredictServiceStub(stages: Seq[ExecutionStage]) extends PredictService {
 
-    override def fetchPredict(in: PredictRequest): Future[PredictResponse] = in.modelSpec.get.signatureName match {
+    override def fetchPredict(in: PredictRequest)(stage: String): Future[PredictResponse] = in.modelSpec.get.signatureName match {
       case "failure" => Future.failed(new RuntimeException("Some failure"))
       case _ => Future.successful(
         PredictResponse(
-          in.inputs.map{case (key, value) =>
+          in.inputs.map { case (key, value) =>
             (key, value.withVersionNumber(value.versionNumber + 1))
           }
         )

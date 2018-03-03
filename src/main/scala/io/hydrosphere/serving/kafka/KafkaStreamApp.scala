@@ -1,7 +1,8 @@
 package io.hydrosphere.serving.kafka
 
 
-import io.grpc.{Server, ServerBuilder}
+import io.grpc.{Server, ServerBuilder, ServerInterceptor, ServerServiceDefinition}
+import io.hydrosphere.serving.grpc.KafkaTopicServerInterceptor
 import io.hydrosphere.serving.kafka.config.{Configuration, KafkaServingStream}
 import io.hydrosphere.serving.kafka.grpc.PredictionGrpcApi
 import org.apache.logging.log4j.scala.Logging
@@ -57,7 +58,7 @@ class Flow()(
   implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
 
 
-  private[this] var server:Server = _
+  private[this] var server: Server = _
 
   def start(): Unit = {
     logger.info("starting kafka serving app")
@@ -74,9 +75,25 @@ class Flow()(
         .branchV(_.requestOrError.isRequest, _.requestOrError.isError)
     }
 
-    server = ServerBuilder.forPort(config.application.port)
+
+    case class BuilderWrapper[T <: ServerBuilder[T]](builder: ServerBuilder[T]) {
+      def addService(service: ServerServiceDefinition): BuilderWrapper[T] = {
+        BuilderWrapper(builder.addService(service))
+      }
+
+      def intercept(service: ServerInterceptor): BuilderWrapper[T] = {
+        BuilderWrapper(builder.intercept(service))
+      }
+
+      def build: Server = {
+        builder.build()
+      }
+    }
+
+    val builder = BuilderWrapper(ServerBuilder.forPort(config.application.port))
       .addService(PredictionServiceGrpc.bindService(predictionApi, scala.concurrent.ExecutionContext.global))
-      .build()
+      .intercept(new KafkaTopicServerInterceptor)
+    server = builder.build
 
     server.start()
     logger.info(s"server on port ${server.getPort} started")
@@ -90,8 +107,7 @@ class Flow()(
       server.shutdownNow()
       logger.info(s"grpc server on port $port stopped")
     }
-    kafkaServing.stop()
-    producer.close()
+
     if (!server.isTerminated) {
       server.awaitTermination()
     }
