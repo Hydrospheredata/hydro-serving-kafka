@@ -2,7 +2,7 @@ package io.hydrosphere.serving.kafka
 
 
 import io.grpc.{Server, ServerBuilder, ServerInterceptor, ServerServiceDefinition}
-import io.hydrosphere.serving.grpc.KafkaTopicServerInterceptor
+import io.hydrosphere.serving.grpc.Headers
 import io.hydrosphere.serving.kafka.config.{Configuration, KafkaServingStream}
 import io.hydrosphere.serving.kafka.grpc.PredictionGrpcApi
 import org.apache.logging.log4j.scala.Logging
@@ -92,7 +92,11 @@ class Flow()(
 
     val builder = BuilderWrapper(ServerBuilder.forPort(config.application.port))
       .addService(PredictionServiceGrpc.bindService(predictionApi, scala.concurrent.ExecutionContext.global))
-      .intercept(new KafkaTopicServerInterceptor)
+      .intercept(Headers.KafkaTopic.interceptor)
+      .intercept(Headers.ApplicationId.interceptor)
+      .intercept(Headers.TraceId.interceptor)
+      .intercept(Headers.StageId.interceptor)
+      .intercept(Headers.StageName.interceptor)
     server = builder.build
 
     server.start()

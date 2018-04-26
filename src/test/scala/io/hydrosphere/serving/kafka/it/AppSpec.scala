@@ -4,7 +4,7 @@ import java.util.concurrent.TimeUnit
 
 import io.grpc.{ClientInterceptors, ManagedChannel, ManagedChannelBuilder}
 import io.hydrosphere.serving.contract.model_signature.ModelSignature
-import io.hydrosphere.serving.grpc.{AuthorityReplacerInterceptor, KafkaTopicServerInterceptor}
+import io.hydrosphere.serving.grpc.{AuthorityReplacerInterceptor, Headers}
 import io.hydrosphere.serving.kafka.Flow
 import io.hydrosphere.serving.kafka.config.Inject.rpcChanel
 import io.hydrosphere.serving.kafka.it.infrostructure.{FakeModel, KafkaContainer, TestConsumer}
@@ -73,7 +73,7 @@ class AppSpec extends FlatSpec
         .usePlaintext(true)
         .build
       val stub = PredictionServiceGrpc.stub(ClientInterceptors
-        .intercept(rpcChanel, new AuthorityReplacerInterceptor, new KafkaTopicServerInterceptor))
+        .intercept(rpcChanel, new AuthorityReplacerInterceptor, Headers.KafkaTopic.interceptor))
 
       TimeUnit.SECONDS.sleep(2)
 
@@ -86,7 +86,7 @@ class AppSpec extends FlatSpec
       And("valid test messages been published via grpc")
       Range(0, 10).foreach { i =>
         val result = stub
-          .withOption(KafkaTopicServerInterceptor.KAFKA_TOPIC_KEY, "shadow_topic")
+          .withOption(Headers.KafkaTopic.callOptionsKey, "shadow_topic")
           .predict(message(i).getRequest.withModelSpec(
             ModelSpec(
               name = "someApp"
