@@ -2,7 +2,7 @@ package io.hydrosphere.serving.kafka.config
 
 import com.typesafe.config.ConfigFactory
 import io.grpc._
-import io.hydrosphere.serving.grpc.{AuthorityReplacerInterceptor, KafkaTopicServerInterceptor}
+import io.hydrosphere.serving.grpc.{AuthorityReplacerInterceptor, Headers}
 import io.hydrosphere.serving.kafka.grpc.PredictionGrpcApi
 import io.hydrosphere.serving.kafka.kafka_messages.KafkaServingMessage
 import io.hydrosphere.serving.kafka.mappers.{KafkaServingMessageSerde, KafkaServingMessageSerializer}
@@ -21,7 +21,7 @@ object Inject {
     .build
 
   implicit val channel: Channel = ClientInterceptors
-    .intercept(rpcChanel, new AuthorityReplacerInterceptor, new KafkaTopicServerInterceptor)
+    .intercept(rpcChanel, new AuthorityReplacerInterceptor +: Headers.interceptors: _*)
 
   implicit lazy val predictService: PredictService = new PredictServiceImpl
   implicit lazy val applicationUpdater = new XDSApplicationUpdateService()

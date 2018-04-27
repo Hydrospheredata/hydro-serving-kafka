@@ -1,15 +1,16 @@
 package io.hydrosphere.serving.kafka.stream
 
 import io.hydrosphere.serving.kafka.config.Configuration
-import io.hydrosphere.serving.kafka.kafka_messages.{KafkaMessageLocation, KafkaMessageMeta, KafkaServingMessage}
+import io.hydrosphere.serving.kafka.kafka_messages.KafkaServingMessage
 import io.hydrosphere.serving.kafka.predict.{Application, PredictService}
+import io.hydrosphere.serving.kafka.utils.KafkaMessageUtils._
+import org.apache.kafka.clients.producer.RecordMetadata
 import org.apache.kafka.streams.kstream.ValueTransformer
 import org.apache.kafka.streams.processor.ProcessorContext
 import org.apache.logging.log4j.scala.Logging
 
-import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Future}
 import scala.concurrent.duration._
-import io.hydrosphere.serving.kafka.utils.KafkaMessageUtils._
+import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Future}
 
 
 class PredictTransformer( val predictService:PredictService,
@@ -43,7 +44,7 @@ class PredictTransformer( val predictService:PredictService,
     Await.result(allStages.head, 1 hour) //TODO what actually timeout do we need
   }
 
-  def shadowMe(message: KafkaServingMessage) = {
+  def shadowMe(message: KafkaServingMessage): Future[RecordMetadata] = {
     logger.debug(s"shadowing message: $message")
     producer.send(config.kafka.shadowTopic, message)
   }
