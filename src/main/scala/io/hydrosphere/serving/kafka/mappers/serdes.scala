@@ -5,8 +5,18 @@ import java.util
 import io.hydrosphere.serving.kafka.kafka_messages.KafkaServingMessage
 import org.apache.kafka.common.serialization.{Deserializer, Serde, Serializer}
 import io.hydrosphere.serving.kafka.utils.KafkaMessageUtils._
+import io.hydrosphere.serving.monitoring.monitoring.ExecutionInformation
 
 import scala.util.Try
+
+
+class KafkaMonitoringMessageSerializer extends Serializer[ExecutionInformation]{
+  override def configure(configs: util.Map[String, _], isKey: Boolean): Unit = {}
+  override def serialize(topic: String, data: ExecutionInformation): Array[Byte] = {
+    data.toByteArray
+  }
+  override def close(): Unit = {}
+}
 
 class KafkaServingMessageSerializer extends Serializer[KafkaServingMessage]{
   override def configure(configs: util.Map[String, _], isKey: Boolean): Unit = {}

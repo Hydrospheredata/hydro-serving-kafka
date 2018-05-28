@@ -70,10 +70,10 @@ class AppSpec extends FlatSpec
 
       val rpcChanel: ManagedChannel = ManagedChannelBuilder
         .forAddress("localhost", 56789)
-        .usePlaintext(true)
+        .usePlaintext()
         .build
       val stub = PredictionServiceGrpc.stub(ClientInterceptors
-        .intercept(rpcChanel, new AuthorityReplacerInterceptor, Headers.KafkaTopic.interceptor))
+        .intercept(rpcChanel, new AuthorityReplacerInterceptor, Headers.XServingKafkaProduceTopic.interceptor))
 
       TimeUnit.SECONDS.sleep(2)
 
@@ -86,7 +86,7 @@ class AppSpec extends FlatSpec
       And("valid test messages been published via grpc")
       Range(0, 10).foreach { i =>
         val result = stub
-          .withOption(Headers.KafkaTopic.callOptionsKey, "shadow_topic")
+          .withOption(Headers.XServingKafkaProduceTopic.callOptionsKey, "shadow_topic")
           .predict(message(i).getRequest.withModelSpec(
             ModelSpec(
               name = "someApp"

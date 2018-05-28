@@ -2,14 +2,16 @@ package io.hydrosphere.serving.kafka.predict
 
 import java.util.concurrent.TimeUnit
 
-import envoy.api.v2.{AggregatedDiscoveryServiceGrpc, DiscoveryRequest, DiscoveryResponse, Node}
+import envoy.api.v2.core.Node
+import envoy.api.v2.{DiscoveryRequest, DiscoveryResponse}
+import envoy.service.discovery.v2.AggregatedDiscoveryServiceGrpc
 import io.grpc.{Channel, ConnectivityState}
 import io.grpc.stub.StreamObserver
 import io.hydrosphere.serving.manager.grpc.applications.{Application => ProtoApplication}
 import org.apache.logging.log4j.scala.Logging
 import monix.execution.Scheduler.{global => scheduler}
-import scala.concurrent.duration._
 
+import scala.concurrent.duration._
 import scala.collection.Seq
 import scala.util.Try
 

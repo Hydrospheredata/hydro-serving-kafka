@@ -3,11 +3,12 @@ package io.hydrosphere.serving.kafka.config
 import com.typesafe.config.ConfigFactory
 import io.grpc._
 import io.hydrosphere.serving.grpc.{AuthorityReplacerInterceptor, Headers}
-import io.hydrosphere.serving.kafka.grpc.PredictionGrpcApi
+import io.hydrosphere.serving.kafka.grpc.{MonitoringServiceGrpcApi, PredictionGrpcApi}
 import io.hydrosphere.serving.kafka.kafka_messages.KafkaServingMessage
-import io.hydrosphere.serving.kafka.mappers.{KafkaServingMessageSerde, KafkaServingMessageSerializer}
+import io.hydrosphere.serving.kafka.mappers.{KafkaMonitoringMessageSerializer, KafkaServingMessageSerde, KafkaServingMessageSerializer}
 import io.hydrosphere.serving.kafka.predict._
 import io.hydrosphere.serving.kafka.stream.Producer
+import io.hydrosphere.serving.monitoring.monitoring.ExecutionInformation
 import org.apache.kafka.common.serialization.Serdes
 import org.apache.kafka.streams.StreamsBuilder
 
@@ -17,7 +18,7 @@ object Inject {
 
   lazy val rpcChanel: ManagedChannel = ManagedChannelBuilder
     .forAddress(appConfig.sidecar.host, appConfig.sidecar.egressPort)
-    .usePlaintext(true)
+    .usePlaintext()
     .build
 
   implicit val channel: Channel = ClientInterceptors
@@ -27,6 +28,7 @@ object Inject {
   implicit lazy val applicationUpdater = new XDSApplicationUpdateService()
   implicit lazy val streamsBuilder = new StreamsBuilder()
   implicit lazy val kafkaServing = new KafkaServingStream(Serdes.ByteArray().getClass, classOf[KafkaServingMessageSerde])
+
   implicit lazy val kafkaProducer = Producer[Array[Byte], KafkaServingMessage](
     appConfig,
     Serdes.ByteArray().serializer().getClass,
@@ -34,6 +36,13 @@ object Inject {
 
   implicit val predictionApi = new PredictionGrpcApi
 
+
+  implicit lazy val kafkaMonitoringProducer = Producer[Array[Byte], ExecutionInformation](
+    appConfig,
+    Serdes.ByteArray().serializer().getClass,
+    classOf[KafkaMonitoringMessageSerializer])
+
+  implicit val monitoringServiceGrpcApi = new MonitoringServiceGrpcApi
 }
 
 

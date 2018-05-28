@@ -1,7 +1,8 @@
 package io.hydrosphere.serving.kafka.it.infrostructure
 
 import com.google.protobuf.any.Any
-import envoy.api.v2.{AggregatedDiscoveryServiceGrpc, DiscoveryRequest, DiscoveryResponse}
+import envoy.api.v2.{DiscoveryRequest, DiscoveryResponse}
+import envoy.service.discovery.v2.AggregatedDiscoveryServiceGrpc
 import io.grpc.stub.StreamObserver
 import io.grpc.{Server, ServerBuilder}
 import io.hydrosphere.serving.contract.model_signature.ModelSignature

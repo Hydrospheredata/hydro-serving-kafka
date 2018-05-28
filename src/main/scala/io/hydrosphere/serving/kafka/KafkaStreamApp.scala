@@ -1,15 +1,16 @@
 package io.hydrosphere.serving.kafka
 
 
-import io.grpc.{Server, ServerBuilder, ServerInterceptor, ServerServiceDefinition}
-import io.hydrosphere.serving.grpc.Headers
+import io.grpc.{Server, ServerBuilder}
+import io.hydrosphere.serving.grpc.{BuilderWrapper, Headers}
 import io.hydrosphere.serving.kafka.config.{Configuration, KafkaServingStream}
-import io.hydrosphere.serving.kafka.grpc.PredictionGrpcApi
+import io.hydrosphere.serving.kafka.grpc.{MonitoringServiceGrpcApi, PredictionGrpcApi}
 import org.apache.logging.log4j.scala.Logging
 import io.hydrosphere.serving.kafka.kafka_messages.KafkaServingMessage
 import io.hydrosphere.serving.kafka.predict._
 import io.hydrosphere.serving.kafka.stream.{PredictTransformer, Producer}
 import io.hydrosphere.serving.manager.grpc.applications.ExecutionGraph
+import io.hydrosphere.serving.monitoring.monitoring.{ExecutionInformation, MonitoringServiceGrpc}
 import io.hydrosphere.serving.tensorflow.api.prediction_service.PredictionServiceGrpc
 
 import scala.collection.Seq
@@ -37,8 +38,10 @@ object Flow {
     applicationUpdateService: UpdateService[Seq[Application]],
     predictor: PredictService,
     predictionApi: PredictionGrpcApi,
+    monitoringApi: MonitoringServiceGrpcApi,
     config: Configuration,
-    producer: Producer[Array[Byte], KafkaServingMessage]
+    producer: Producer[Array[Byte], KafkaServingMessage],
+    monitoringProducer: Producer[Array[Byte], ExecutionInformation]
   ): Flow = {
     val flow = new Flow()
     flow.start()
@@ -52,7 +55,9 @@ class Flow()(
   predictor: PredictService,
   config: Configuration,
   predictionApi: PredictionGrpcApi,
-  producer: Producer[Array[Byte], KafkaServingMessage]
+  monitoringApi: MonitoringServiceGrpcApi,
+  producer: Producer[Array[Byte], KafkaServingMessage],
+  monitoringProducer: Producer[Array[Byte], ExecutionInformation]
 ) extends Logging {
 
   implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
@@ -76,27 +81,10 @@ class Flow()(
     }
 
 
-    case class BuilderWrapper[T <: ServerBuilder[T]](builder: ServerBuilder[T]) {
-      def addService(service: ServerServiceDefinition): BuilderWrapper[T] = {
-        BuilderWrapper(builder.addService(service))
-      }
-
-      def intercept(service: ServerInterceptor): BuilderWrapper[T] = {
-        BuilderWrapper(builder.intercept(service))
-      }
-
-      def build: Server = {
-        builder.build()
-      }
-    }
-
     val builder = BuilderWrapper(ServerBuilder.forPort(config.application.port))
       .addService(PredictionServiceGrpc.bindService(predictionApi, scala.concurrent.ExecutionContext.global))
-      .intercept(Headers.KafkaTopic.interceptor)
-      .intercept(Headers.ApplicationId.interceptor)
-      .intercept(Headers.TraceId.interceptor)
-      .intercept(Headers.StageId.interceptor)
-      .intercept(Headers.StageName.interceptor)
+      .addService(MonitoringServiceGrpc.bindService(monitoringApi, scala.concurrent.ExecutionContext.global))
+      .intercept(Headers.XServingKafkaProduceTopic.interceptor)
     server = builder.build
 
     server.start()
