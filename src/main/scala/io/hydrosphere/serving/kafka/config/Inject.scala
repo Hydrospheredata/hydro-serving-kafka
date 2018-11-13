@@ -1,8 +1,8 @@
 package io.hydrosphere.serving.kafka.config
 
-import com.typesafe.config.ConfigFactory
-import io.grpc._
+import io.grpc.{Channel, ClientInterceptors, ManagedChannel, ManagedChannelBuilder}
 import io.hydrosphere.serving.grpc.{AuthorityReplacerInterceptor, Headers}
+import io.hydrosphere.serving.kafka.KafkaServingStream
 import io.hydrosphere.serving.kafka.grpc.PredictionGrpcApi
 import io.hydrosphere.serving.kafka.kafka_messages.KafkaServingMessage
 import io.hydrosphere.serving.kafka.mappers.{KafkaServingMessageSerde, KafkaServingMessageSerializer}
@@ -13,7 +13,7 @@ import org.apache.kafka.streams.StreamsBuilder
 
 object Inject {
 
-  implicit lazy val appConfig = Configuration(ConfigFactory.load())
+  implicit lazy val appConfig: Configuration = Configuration.loadOrFail
 
   lazy val rpcChanel: ManagedChannel = ManagedChannelBuilder
     .forAddress(appConfig.sidecar.host, appConfig.sidecar.egressPort)

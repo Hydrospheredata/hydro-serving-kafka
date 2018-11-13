@@ -2,11 +2,9 @@ import sbt._
 
 name := "hydro-serving-kafka"
 
-val scalaCommonVersion = "2.12.4"
-
 enablePlugins(DockerPlugin)
 
-scalaVersion := scalaCommonVersion
+scalaVersion := "2.12.4"
 
 version := IO.read(file("version"))
 parallelExecution in Test := false
@@ -15,7 +13,7 @@ fork in(Test, test) := true
 fork in(IntegrationTest, test) := true
 fork in(IntegrationTest, testOnly) := true
 publishArtifact := false
-organization := "io.hydrosphere.serving.kafka"
+organization := "io.hydrosphere"
 scalacOptions ++= Seq(
   "-unchecked",
   "-deprecation",
@@ -26,9 +24,7 @@ scalacOptions ++= Seq(
   "-language:postfixOps"
 )
 
-exportJars := true
-resolvers += Resolver.bintrayRepo("findify", "maven")
-libraryDependencies ++= Dependencies.streamingKafkaDependencies
+libraryDependencies ++= Dependencies.all
 
 dockerfile in docker := {
   val dockerFilesLocation = baseDirectory.value / "src/main/docker/"
