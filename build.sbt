@@ -65,6 +65,6 @@ dockerfile in docker := {
 imageNames in docker := Seq(
   ImageName(
     namespace = Some("hydrosphere"),
-    repository = s"serving-kafka-gateway"
+    repository = s"serving-gateway-kafka"
   )
 )
