@@ -22,19 +22,17 @@ services:
       - "ADVERTISED_MANAGER_HOST=manager"
       - "ADVERTISED_MANAGER_PORT=9091"
       - "DATABASE_HOST=postgres"
-      - "LOCAL_MODEL_PATH=/models"
       - "SIDECAR_HOST=sidecar"
       - "NETWORK_NAME=automation_hydronet"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ${MODEL_DIRECTORY}:/models
 
 
   sidecar:
     image: hydrosphere/serving-sidecar:latest
     container_name: sidecar
     ports:
-      - "8080:8080"
+      - "80:8080"
       - "8082:8082"
       - "8081:8081"
     networks:
@@ -77,8 +75,6 @@ services:
   managerui:
     image: hydrosphere/serving-manager-ui:latest
     container_name: managerui
-    ports:
-      - "8083:80"
     networks:
       - extnet
       - hydronet
@@ -86,8 +82,8 @@ services:
       - "MANAGER_HOST=sidecar:8080"
 
   kafka_serving:
-    image: hydrosphere/serving-kafka-gateway:latest
-    container_name: serving-kafka-gateway
+    image: hydrosphere/serving-gateway-kafka:latest
+    container_name: serving-gateway-kafka
     networks:
       - extnet
       - hydronet
@@ -101,7 +97,6 @@ services:
       - sidecar
       - kafka
       - manager
-    command: ["/app/wait-for-manager.sh", "sidecar", "8081", "/app/start.sh"]
     environment:
       - "SIDECAR_INGRESS_PORT=8080"
       - "SIDECAR_EGRESS_PORT=8081"
