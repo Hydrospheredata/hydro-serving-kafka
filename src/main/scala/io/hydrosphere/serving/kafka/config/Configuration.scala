@@ -3,6 +3,7 @@ package io.hydrosphere.serving.kafka.config
 import org.apache.logging.log4j.scala.Logging
 
 import scala.concurrent.duration._
+import pureconfig.generic.auto._
 
 
 final case class KafkaConfiguration(
@@ -11,13 +12,13 @@ final case class KafkaConfiguration(
   shadowTopic: String = "shadow_topic"
 )
 final case class ApplicationConfig(
-  appId: String
+  appId: String,
+  xdsSilentRestartSeconds: Int
 )
 final case class SidecarConfig(
   host: String,
-  egressPort: Int,
-  ingressPort: Int,
-  adminPort: Int
+  port: Int,
+  xdsSilentRestartSeconds: Int
 )
 final case class GrpcConfig(
   port: Int,

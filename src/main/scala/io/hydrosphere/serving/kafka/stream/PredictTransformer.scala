@@ -52,6 +52,4 @@ class PredictTransformer( val predictService:PredictService,
   override def close(): Unit = {
 
   }
-
-  override def punctuate(timestamp: Long): KafkaServingMessage = ???
 }

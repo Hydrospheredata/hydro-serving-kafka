@@ -4,8 +4,12 @@ object Dependencies {
 
   val log4j2Version = "2.10.0"
   val scalaTestVersion = "3.0.4"
-  val kafkaApiVersion = "1.0.0"
-  val servingGrpcScala = "0.1.4"
+  val kafkaApiVersion = "2.0.0"
+  val servingGrpcScala = "0.1.22"
+
+  lazy val akkaDeps = Seq(
+    "com.typesafe.akka" %% "akka-actor" % "2.5.18",
+  )
 
   lazy val logDependencies = Seq(
     "org.apache.logging.log4j" % "log4j-api" % log4j2Version,
@@ -14,11 +18,11 @@ object Dependencies {
     "org.apache.logging.log4j" %% "log4j-api-scala" % "11.0"
   )
 
-  lazy val hydroserving = Seq(
+  lazy val grpcDeps = Seq(
     "io.hydrosphere" %% "serving-grpc-scala" % servingGrpcScala,
-    "io.hydrosphere" %% "envoy-data-plane-api" % "v1.5.0_2"
+    "io.hydrosphere" %% "envoy-data-plane-api" % "v1.6.0_1"
   )
-  
+
   lazy val commonDependencies = Seq(
     "com.github.pureconfig" %% "pureconfig" % "0.10.0",
     "org.typelevel" %% "cats-core" % "1.0.1",
@@ -34,22 +38,22 @@ object Dependencies {
 
   lazy val kafkaDeps = Seq(
     "org.apache.kafka" %% "kafka" % kafkaApiVersion,
+    "org.apache.kafka" %% "kafka-streams-scala" % kafkaApiVersion,
     "org.apache.kafka" % "kafka-clients" % kafkaApiVersion % Test,
-    "org.apache.kafka" % "kafka-streams" % kafkaApiVersion,
   )
-  
+
   lazy val testDeps = Seq(
     "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
     "org.mockito" % "mockito-all" % "1.8.4" % "test"
   )
 
-  lazy val streamingKafkaDependencies = 
-    dockerDependencies ++
-    hydroserving ++
+  lazy val streamingKafkaDependencies = commonDependencies ++
+    grpcDeps ++
     kafkaDeps ++
     testDeps ++
-    commonDependencies ++ 
-    logDependencies
-  
+    dockerDependencies ++
+    logDependencies ++
+    akkaDeps
+
   lazy val all = streamingKafkaDependencies.map(_.exclude("org.slf4j", "slf4j-jdk14"))
 }

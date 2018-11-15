@@ -17,17 +17,18 @@ class PredictionGrpcApi(implicit streamer: AppStreamer[Array[Byte], KafkaServing
 
   override def predict(request: PredictRequest): Future[PredictResponse] = {
     
-    val topic = Option(Headers.KafkaTopic.contextKey.get())
+    val topic = Option(Headers.XServingKafkaProduceTopic.contextKey.get())
+      .orElse(request.modelSpec.map(_.name))
       .getOrElse(throw new IllegalArgumentException("Specify topic"))
-    
+
 
     def getHeaderValue(header: Header): String = Option(header.contextKey.get()).getOrElse("empty")
     
     val meta = KafkaMessageMeta(
-      getHeaderValue(Headers.TraceId),
-      getHeaderValue(Headers.ApplicationId),
-      getHeaderValue(Headers.StageId),
-      getHeaderValue(Headers.StageName),
+      getHeaderValue(Headers.XB3TraceId),
+      "empty",
+      "empty",
+      "empty",
       None
     )
 

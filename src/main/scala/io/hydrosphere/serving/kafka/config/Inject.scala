@@ -16,8 +16,8 @@ object Inject {
   implicit lazy val appConfig: Configuration = Configuration.loadOrFail
 
   lazy val rpcChanel: ManagedChannel = ManagedChannelBuilder
-    .forAddress(appConfig.sidecar.host, appConfig.sidecar.egressPort)
-    .usePlaintext(true)
+    .forAddress(appConfig.sidecar.host, appConfig.sidecar.port)
+    .usePlaintext
     .build
 
   implicit val channel: Channel = ClientInterceptors
@@ -32,8 +32,5 @@ object Inject {
     Serdes.ByteArray().serializer().getClass,
     classOf[KafkaServingMessageSerializer])
 
-  implicit val predictionApi = new PredictionGrpcApi
-
+  implicit val predictionApi: PredictionGrpcApi = new PredictionGrpcApi
 }
-
-

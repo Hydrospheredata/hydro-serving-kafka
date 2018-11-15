@@ -1,5 +1,6 @@
 package io.hydrosphere.serving.kafka
 
+import akka.actor.ActorRef
 import io.grpc.ServerBuilder
 import io.hydrosphere.serving.grpc.Headers
 import io.hydrosphere.serving.kafka.config.Configuration
@@ -7,11 +8,11 @@ import io.hydrosphere.serving.kafka.grpc.PredictionGrpcApi
 import io.hydrosphere.serving.kafka.kafka_messages.KafkaServingMessage
 import io.hydrosphere.serving.kafka.predict._
 import io.hydrosphere.serving.kafka.stream.{PredictTransformer, Producer}
-import io.hydrosphere.serving.kafka.utils.BuilderWrapper
+import io.hydrosphere.serving.kafka.utils.ServerBuilderWrapper
 import io.hydrosphere.serving.tensorflow.api.prediction_service.PredictionServiceGrpc
 import org.apache.logging.log4j.scala.Logging
 
-import scala.collection.Seq
+import scala.concurrent.ExecutionContext
 
 
 object Flow {
@@ -40,18 +41,15 @@ class Flow()(
 
   private final val grpcPort = config.grpc.port
 
-  final private val builder = BuilderWrapper(ServerBuilder.forPort(grpcPort))
+  final private val builder = ServerBuilderWrapper(ServerBuilder.forPort(grpcPort))
     .addService(PredictionServiceGrpc.bindService(predictionApi, scala.concurrent.ExecutionContext.global))
-    .intercept(Headers.KafkaTopic.interceptor)
-    .intercept(Headers.ApplicationId.interceptor)
-    .intercept(Headers.TraceId.interceptor)
-    .intercept(Headers.StageId.interceptor)
-    .intercept(Headers.StageName.interceptor)
+
+  Headers.interceptors.foreach(builder.intercept)
 
   final val server = builder.build
 
   def start(): Unit = {
-    logger.info("starting kafka serving app")
+    logger.info("Starting kafka serving app")
     kafkaServing.streamForAll {
       case (app, stream) =>
         stream
