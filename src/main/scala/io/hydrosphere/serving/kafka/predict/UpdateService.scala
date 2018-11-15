@@ -55,7 +55,7 @@ trait UpdateService[T] {
     }
   }
 
-  protected def doOnNext(item:T, version:Version):Unit = doAction(item, version,  upsertHandlers)
+  def doOnNext(item:T, version:Version):Unit = doAction(item, version,  upsertHandlers)
 
 
 }

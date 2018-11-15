@@ -1,5 +1,6 @@
 package io.hydrosphere.serving.kafka.config
 
+import akka.actor.ActorSystem
 import io.grpc.{Channel, ClientInterceptors, ManagedChannel, ManagedChannelBuilder}
 import io.hydrosphere.serving.grpc.{AuthorityReplacerInterceptor, Headers}
 import io.hydrosphere.serving.kafka.KafkaServingStream
@@ -14,14 +15,16 @@ import org.apache.kafka.streams.StreamsBuilder
 object Inject {
 
   implicit lazy val appConfig: Configuration = Configuration.loadOrFail
+  implicit lazy val sidecarConfig = appConfig.sidecar
 
   lazy val rpcChanel: ManagedChannel = ManagedChannelBuilder
     .forAddress(appConfig.sidecar.host, appConfig.sidecar.port)
     .usePlaintext
     .build
-
   implicit val channel: Channel = ClientInterceptors
     .intercept(rpcChanel, new AuthorityReplacerInterceptor +: Headers.interceptors: _*)
+
+  implicit lazy val actorSystem = ActorSystem()
 
   implicit lazy val predictService: PredictService = new PredictServiceImpl
   implicit lazy val applicationUpdater = new XDSApplicationUpdateService()

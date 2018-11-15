@@ -1,5 +1,6 @@
 package io.hydrosphere.serving.kafka.it.infrostructure
 
+import akka.actor.ActorSystem
 import io.grpc.{ManagedChannel, ManagedChannelBuilder}
 import io.hydrosphere.serving.kafka.config._
 import io.hydrosphere.serving.kafka.kafka_messages.KafkaServingMessage
@@ -17,13 +18,11 @@ object EndToEndInject {
     KafkaConfiguration("localhost", 9092),
     GrpcConfig(9090)
   )
-
+  implicit val sidecarConfig = config.sidecar
+  implicit val as = ActorSystem()
   implicit val chanel: ManagedChannel = ManagedChannelBuilder.forAddress("localhost", 8081).usePlaintext.build
   implicit val predictService: PredictService = new PredictServiceImpl
   implicit val applicationUpdater = new XDSApplicationUpdateService()
   implicit lazy val streamsBuilder = new StreamsBuilder()
   implicit val streamer = new KafkaStreamer[Array[Byte], KafkaServingMessage](Serdes.ByteArray().getClass, classOf[KafkaServingMessageSerde])
-
-
-
 }

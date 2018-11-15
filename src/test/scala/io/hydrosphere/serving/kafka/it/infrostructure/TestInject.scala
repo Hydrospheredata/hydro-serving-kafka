@@ -1,5 +1,6 @@
 package io.hydrosphere.serving.kafka.it.infrostructure
 
+import akka.actor.ActorSystem
 import io.grpc.{ManagedChannel, ManagedChannelBuilder}
 import io.hydrosphere.serving.kafka.config._
 import io.hydrosphere.serving.kafka.grpc.PredictionGrpcApi
@@ -19,12 +20,15 @@ object TestInject {
     GrpcConfig(9090)
   )
 
+  implicit val sidecarConfig = config.sidecar
+  implicit val as = ActorSystem()
+
   implicit val modelChanel: ManagedChannel = ManagedChannelBuilder.forAddress("localhost", 56787).usePlaintext.build
   val appChanel: ManagedChannel = ManagedChannelBuilder.forAddress("localhost", 56786).usePlaintext.build
 
   implicit val predictService: PredictService = new PredictServiceImpl
 
-  implicit val applicationUpdater = new XDSApplicationUpdateService()(appChanel)
+  implicit val applicationUpdater = new XDSApplicationUpdateService()
 
   implicit lazy val streamsBuilder = new StreamsBuilder()
 
