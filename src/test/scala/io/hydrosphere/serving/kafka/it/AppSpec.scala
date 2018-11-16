@@ -100,11 +100,11 @@ class AppSpec extends FlatSpec
 
     Then("All result predictions should be processed and published to 'successful' topic")
     testConsumer.out.size shouldBe 10
-    testConsumer.out.filter(_.requestOrError.isRequest).size shouldBe 10
+    testConsumer.out.count(_.requestOrError.isRequest) shouldBe 10
 
     And("inner model stage computation results should be published to 'shadow' topic")
     testConsumer.shadow.size shouldBe 30
-    testConsumer.shadow.filter(_.requestOrError.isRequest).size shouldBe 30
+    testConsumer.shadow.count(_.requestOrError.isRequest) shouldBe 30
   }
 
   def withApplication(action: Flow => Unit): Unit = {

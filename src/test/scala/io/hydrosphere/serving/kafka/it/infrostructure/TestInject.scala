@@ -14,10 +14,10 @@ import org.apache.kafka.streams.StreamsBuilder
 object TestInject {
 
   implicit val config = Configuration(
-    ApplicationConfig("hydro-serving-kafka", 56789),
-    SidecarConfig("localhost", 56788, 56688),
+    ApplicationConfig(),
+    SidecarConfig("localhost", 56788),
     KafkaConfiguration("localhost", 9092),
-    GrpcConfig(9090)
+    GrpcConfig(56789)
   )
 
   implicit val sidecarConfig = config.sidecar
