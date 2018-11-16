@@ -70,10 +70,10 @@ class AppSpec extends FlatSpec
 
       val rpcChanel: ManagedChannel = ManagedChannelBuilder
         .forAddress("localhost", 56789)
-        .usePlaintext(true)
+        .usePlaintext
         .build
       val stub = PredictionServiceGrpc.stub(ClientInterceptors
-        .intercept(rpcChanel, new AuthorityReplacerInterceptor, Headers.KafkaTopic.interceptor))
+        .intercept(rpcChanel, new AuthorityReplacerInterceptor, Headers.XServingKafkaProduceTopic.interceptor))
 
       TimeUnit.SECONDS.sleep(2)
 
@@ -86,7 +86,7 @@ class AppSpec extends FlatSpec
       And("valid test messages been published via grpc")
       Range(0, 10).foreach { i =>
         val result = stub
-          .withOption(Headers.KafkaTopic.callOptionsKey, "shadow_topic")
+          .withOption(Headers.XServingKafkaProduceTopic.callOptionsKey, "shadow_topic")
           .predict(message(i).getRequest.withModelSpec(
             ModelSpec(
               name = "someApp"
@@ -100,17 +100,17 @@ class AppSpec extends FlatSpec
 
     Then("All result predictions should be processed and published to 'successful' topic")
     testConsumer.out.size shouldBe 10
-    testConsumer.out.filter(_.requestOrError.isRequest).size shouldBe 10
+    testConsumer.out.count(_.requestOrError.isRequest) shouldBe 10
 
     And("inner model stage computation results should be published to 'shadow' topic")
     testConsumer.shadow.size shouldBe 30
-    testConsumer.shadow.filter(_.requestOrError.isRequest).size shouldBe 30
+    testConsumer.shadow.count(_.requestOrError.isRequest) shouldBe 30
   }
 
   def withApplication(action: Flow => Unit): Unit = {
     When("test Application been started")
     import io.hydrosphere.serving.kafka.it.infrostructure.TestInject._
-    var flow: Flow = new Flow()
+    val flow: Flow = new Flow()
     try {
       Future {
         flow.start()

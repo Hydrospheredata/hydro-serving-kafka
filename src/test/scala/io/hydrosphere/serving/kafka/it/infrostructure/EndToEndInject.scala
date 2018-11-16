@@ -1,7 +1,8 @@
 package io.hydrosphere.serving.kafka.it.infrostructure
 
+import akka.actor.ActorSystem
 import io.grpc.{ManagedChannel, ManagedChannelBuilder}
-import io.hydrosphere.serving.kafka.config.{ApplicationConfig, Configuration, KafkaConfiguration, SidecarConfig}
+import io.hydrosphere.serving.kafka.config._
 import io.hydrosphere.serving.kafka.kafka_messages.KafkaServingMessage
 import io.hydrosphere.serving.kafka.mappers.KafkaServingMessageSerde
 import io.hydrosphere.serving.kafka.predict.{PredictService, PredictServiceImpl, XDSApplicationUpdateService}
@@ -12,17 +13,16 @@ import org.apache.kafka.streams.StreamsBuilder
 object EndToEndInject {
 
   implicit val config = Configuration(
-    ApplicationConfig("hydro-serving-kafka", 56789),
-    SidecarConfig("localhost", 56788, 56688, 56687),
-    KafkaConfiguration("localhost", 9092)
+    ApplicationConfig(),
+    SidecarConfig("localhost", 56788),
+    KafkaConfiguration("localhost", 9092),
+    GrpcConfig(56789)
   )
-
-  implicit val chanel: ManagedChannel = ManagedChannelBuilder.forAddress("localhost", 8081).usePlaintext(true).build
+  implicit val sidecarConfig = config.sidecar
+  implicit val as = ActorSystem()
+  implicit val chanel: ManagedChannel = ManagedChannelBuilder.forAddress("localhost", 8081).usePlaintext.build
   implicit val predictService: PredictService = new PredictServiceImpl
   implicit val applicationUpdater = new XDSApplicationUpdateService()
   implicit lazy val streamsBuilder = new StreamsBuilder()
   implicit val streamer = new KafkaStreamer[Array[Byte], KafkaServingMessage](Serdes.ByteArray().getClass, classOf[KafkaServingMessageSerde])
-
-
-
 }

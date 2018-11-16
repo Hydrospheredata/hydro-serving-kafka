@@ -1,57 +1,43 @@
 package io.hydrosphere.serving.kafka.config
 
-import com.typesafe.config.Config
 import org.apache.logging.log4j.scala.Logging
 
+import scala.concurrent.duration._
+import pureconfig.generic.auto._
 
-case class KafkaConfiguration(advertisedHost: String, advertisedPort: Int, shadowTopic:String = "shadow_topic")
-case class ApplicationConfig(appId: String, port: Int)
-case class SidecarConfig(host: String, egressPort: Int, ingressPort:Int, adminPort:Int)
 
-final case class Configuration(application:ApplicationConfig,
-                             sidecar:SidecarConfig,
-                             kafka:KafkaConfiguration)
+final case class KafkaConfiguration(
+  advertisedHost: String = "kafka",
+  advertisedPort: Int = 9092,
+  shadowTopic: String = "shadow_topic"
+)
+final case class ApplicationConfig(
+  appId: String = "hydro-serving-kafka",
+)
+
+final case class SidecarConfig(
+  host: String = "sidecar",
+  port: Int = 8080,
+  xdsSilentRestartSeconds: Int = 30
+)
+final case class GrpcConfig(
+  port: Int = 9091,
+  maxMessageSize: Int = 512 * 1024 * 1024,
+  deadline: Duration = 5.minutes
+)
+final case class Configuration(
+  application: ApplicationConfig,
+  sidecar: SidecarConfig,
+  kafka: KafkaConfiguration,
+  grpc: GrpcConfig
+)
 
 object Configuration extends Logging {
+  def load = {
+    pureconfig.loadConfig[Configuration]
+  }
 
-    private[Configuration] def logged[T](configName:String)(wrapped:T):T = {
-      logger.info(s"configuration: $configName: $wrapped")
-      wrapped
-    }
-
-    def parseSidecar(config: Config): SidecarConfig = logged("sidecar"){
-      val c = config.getConfig("sidecar")
-      SidecarConfig(
-        host = c.getString("host"),
-        egressPort = c.getInt("egressPort"),
-        ingressPort = c.getInt("ingressPort"),
-        adminPort = c.getInt("adminPort")
-      )
-    }
-
-    def parseApplication(config: Config): ApplicationConfig = logged("base app"){
-      val c = config.getConfig("application")
-      ApplicationConfig(
-        port = c.getInt("port"),
-        appId = c.getString("appId")
-      )
-    }
-
-    def parseKafka(config: Config): KafkaConfiguration = logged("kafka"){
-      val c = config.getConfig("kafka")
-      KafkaConfiguration(
-        advertisedHost = c.getString("advertisedHost"),
-        advertisedPort = c.getInt("advertisedPort")
-      )
-    }
-
-  def apply(config:Config): Configuration = Configuration(
-    parseApplication(config),
-    parseSidecar(config),
-    parseKafka(config)
-  )
-
+  def loadOrFail: Configuration = {
+    load.right.get
+  }
 }
-
-
-

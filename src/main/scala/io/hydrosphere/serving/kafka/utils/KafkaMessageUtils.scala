@@ -12,12 +12,7 @@ import io.hydrosphere.serving.tensorflow.api.predict.{PredictRequest, PredictRes
 
 object KafkaMessageUtils {
 
-  def withException(e: Throwable): KafkaServingMessage = KafkaServingMessage(
-    meta = None,
-    requestOrError = RequestOrError.Error(KafkaError(
-      e.getMessage, None
-    ))
-  )
+  def withException(e: Throwable): KafkaServingMessage = withException(e.getMessage)
 
   def withException(errorMessage: String): KafkaServingMessage = KafkaServingMessage(
     meta = None,
@@ -26,11 +21,11 @@ object KafkaMessageUtils {
     ))
   )
 
-  implicit class KafkaServingMessageSyntax(underlying: KafkaServingMessage) {
+  implicit final class KafkaServingMessageSyntax(val underlying: KafkaServingMessage) extends AnyVal {
 
     def forNewStage(stage: ExecutionStage): KafkaServingMessage = {
 
-      val modelSpecFromStage: Option[ModelSpec] = for {
+      val modelSpecFromStage = for {
         name <- underlying.meta.map(_.applicationId)
         signatureName <- stage.signature.map(_.signatureName)
       } yield ModelSpec(
@@ -42,16 +37,11 @@ object KafkaMessageUtils {
         .withRequestOrError {
           underlying.requestOrError match {
             case RequestOrError.Request(value) => RequestOrError.Request(value.withModelSpec {
-              modelSpecFromStage.getOrElse {
-                val modelSpecFromRequest = value
-                  .modelSpec
-
-                if (modelSpecFromRequest.isEmpty) throw new IllegalArgumentException(
-                  "ModelSpec should be provided by stage or by request(if application has only one stage)"
-                )
-
-                modelSpecFromRequest.get
-              }
+              val modelSpec = modelSpecFromStage orElse value.modelSpec
+              if (modelSpec.isEmpty) throw new IllegalArgumentException(
+                "ModelSpec should be provided by stage or by request(if application has only one stage)"
+              )
+              modelSpec.get
             })
             case e: RequestOrError.Error => e
             case RequestOrError.Empty => RequestOrError.Error(KafkaError("Empty request message"))
@@ -74,28 +64,27 @@ object KafkaMessageUtils {
 
     def applyIfRequest[F[_] : Monad](transform: PredictRequest => F[PredictResponse]): F[KafkaServingMessage] =
       underlying.requestOrError match {
-        case RequestOrError.Error(_) => Monad[F].pure(underlying)
-        case RequestOrError.Empty => Monad[F].pure(withException("Empty request message"))
-        case RequestOrError.Request(predictRequest) => Monad[F].map(transform(predictRequest)) { resp => underlying.withRequest(predictRequest.withInputs(resp.outputs)) }
-
+        case RequestOrError.Error(_) => underlying.pure[F]
+        case RequestOrError.Empty => withException("Empty request message").pure[F]
+        case RequestOrError.Request(predictRequest) => transform(predictRequest).map {
+          resp => underlying.withRequest(predictRequest.withInputs(resp.outputs))
+        }
       }
 
-    def forApplicaton(app: Application) = underlying.withMeta {
-      underlying
+    def forApplicaton(app: Application) = {
+      val meta = underlying
         .meta
-        .getOrElse(KafkaMessageMeta())
+        .getOrElse(KafkaMessageMeta.defaultInstance)
         .withApplicationId(app.name)
-    }.withRequestOrError(
-      if (underlying.requestOrError.isRequest) {
-        val request = underlying
-          .requestOrError
-          .request
-          .map(r => r.withModelSpec(
-            r.modelSpec.getOrElse(ModelSpec()).withName(app.name)
-          ))
-        RequestOrError.Request(request.get)
-      } else underlying.requestOrError)
 
+      val requestOrError = underlying.requestOrError match {
+        case RequestOrError.Request(request) =>
+          val newModelSpec = request.modelSpec.getOrElse(ModelSpec.defaultInstance).withName(app.name)
+          RequestOrError.Request(request.withModelSpec(newModelSpec))
+        case x => x
+      }
+
+      underlying.withMeta(meta).withRequestOrError(requestOrError)
+    }
   }
-
 }

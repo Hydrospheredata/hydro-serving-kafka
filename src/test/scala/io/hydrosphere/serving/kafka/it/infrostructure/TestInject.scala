@@ -1,7 +1,8 @@
 package io.hydrosphere.serving.kafka.it.infrostructure
 
+import akka.actor.ActorSystem
 import io.grpc.{ManagedChannel, ManagedChannelBuilder}
-import io.hydrosphere.serving.kafka.config.{ApplicationConfig, Configuration, KafkaConfiguration, SidecarConfig}
+import io.hydrosphere.serving.kafka.config._
 import io.hydrosphere.serving.kafka.grpc.PredictionGrpcApi
 import io.hydrosphere.serving.kafka.kafka_messages.KafkaServingMessage
 import io.hydrosphere.serving.kafka.mappers.{KafkaServingMessageSerde, KafkaServingMessageSerializer}
@@ -13,17 +14,21 @@ import org.apache.kafka.streams.StreamsBuilder
 object TestInject {
 
   implicit val config = Configuration(
-    ApplicationConfig("hydro-serving-kafka", 56789),
-    SidecarConfig("localhost", 56788, 56688, 56687),
-    KafkaConfiguration("localhost", 9092)
+    ApplicationConfig(),
+    SidecarConfig("localhost", 56788),
+    KafkaConfiguration("localhost", 9092),
+    GrpcConfig(56789)
   )
 
-  implicit val modelChanel: ManagedChannel = ManagedChannelBuilder.forAddress("localhost", 56787).usePlaintext(true).build
-  val appChanel: ManagedChannel = ManagedChannelBuilder.forAddress("localhost", 56786).usePlaintext(true).build
+  implicit val sidecarConfig = config.sidecar
+  implicit val as = ActorSystem()
+
+  implicit val modelChanel: ManagedChannel = ManagedChannelBuilder.forAddress("localhost", 56787).usePlaintext.build
+  val appChanel: ManagedChannel = ManagedChannelBuilder.forAddress("localhost", 56786).usePlaintext.build
 
   implicit val predictService: PredictService = new PredictServiceImpl
 
-  implicit val applicationUpdater = new XDSApplicationUpdateService()(appChanel)
+  implicit val applicationUpdater = new XDSApplicationUpdateService()
 
   implicit lazy val streamsBuilder = new StreamsBuilder()
 

@@ -12,7 +12,8 @@ object KafkaStream {
 class KafkaStream[K, V](val underlying: KStream[K, V]) extends Stream[K, V] with Logging {
 
   override def mapV[V1](f: V => V1): KafkaStream[K, V1] = KafkaStream {
-    underlying.mapValues[V1]((value: V) => f(value))
+    val mapper: ValueMapper[V, V1] = (value: V) => f(value)
+    underlying.mapValues(mapper)
   }
 
   override def filterV(f: V => Boolean): KafkaStream[K, V] = KafkaStream {

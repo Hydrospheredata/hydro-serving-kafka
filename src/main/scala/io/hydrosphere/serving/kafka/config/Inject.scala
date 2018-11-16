@@ -1,8 +1,9 @@
 package io.hydrosphere.serving.kafka.config
 
-import com.typesafe.config.ConfigFactory
-import io.grpc._
+import akka.actor.ActorSystem
+import io.grpc.{Channel, ClientInterceptors, ManagedChannel, ManagedChannelBuilder}
 import io.hydrosphere.serving.grpc.{AuthorityReplacerInterceptor, Headers}
+import io.hydrosphere.serving.kafka.KafkaServingStream
 import io.hydrosphere.serving.kafka.grpc.PredictionGrpcApi
 import io.hydrosphere.serving.kafka.kafka_messages.KafkaServingMessage
 import io.hydrosphere.serving.kafka.mappers.{KafkaServingMessageSerde, KafkaServingMessageSerializer}
@@ -13,15 +14,17 @@ import org.apache.kafka.streams.StreamsBuilder
 
 object Inject {
 
-  implicit lazy val appConfig = Configuration(ConfigFactory.load())
+  implicit lazy val appConfig: Configuration = Configuration.loadOrFail
+  implicit lazy val sidecarConfig = appConfig.sidecar
 
   lazy val rpcChanel: ManagedChannel = ManagedChannelBuilder
-    .forAddress(appConfig.sidecar.host, appConfig.sidecar.egressPort)
-    .usePlaintext(true)
+    .forAddress(appConfig.sidecar.host, appConfig.sidecar.port)
+    .usePlaintext
     .build
-
   implicit val channel: Channel = ClientInterceptors
     .intercept(rpcChanel, new AuthorityReplacerInterceptor +: Headers.interceptors: _*)
+
+  implicit lazy val actorSystem = ActorSystem()
 
   implicit lazy val predictService: PredictService = new PredictServiceImpl
   implicit lazy val applicationUpdater = new XDSApplicationUpdateService()
@@ -32,8 +35,5 @@ object Inject {
     Serdes.ByteArray().serializer().getClass,
     classOf[KafkaServingMessageSerializer])
 
-  implicit val predictionApi = new PredictionGrpcApi
-
+  implicit val predictionApi: PredictionGrpcApi = new PredictionGrpcApi
 }
-
-

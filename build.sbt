@@ -2,11 +2,9 @@ import sbt._
 
 name := "hydro-serving-kafka"
 
-val scalaCommonVersion = "2.12.4"
-
 enablePlugins(DockerPlugin)
 
-scalaVersion := scalaCommonVersion
+scalaVersion := "2.12.4"
 
 version := IO.read(file("version"))
 parallelExecution in Test := false
@@ -15,7 +13,7 @@ fork in(Test, test) := true
 fork in(IntegrationTest, test) := true
 fork in(IntegrationTest, testOnly) := true
 publishArtifact := false
-organization := "io.hydrosphere.serving.kafka"
+organization := "io.hydrosphere"
 scalacOptions ++= Seq(
   "-unchecked",
   "-deprecation",
@@ -26,9 +24,7 @@ scalacOptions ++= Seq(
   "-language:postfixOps"
 )
 
-exportJars := true
-resolvers += Resolver.bintrayRepo("findify", "maven")
-libraryDependencies ++= Dependencies.streamingKafkaDependencies
+libraryDependencies ++= Dependencies.all
 
 dockerfile in docker := {
   val dockerFilesLocation = baseDirectory.value / "src/main/docker/"
@@ -38,15 +34,6 @@ dockerfile in docker := {
 
   new Dockerfile {
     from("openjdk:8u151-jre-alpine")
-
-    env("SIDECAR_INGRESS_PORT", "8080")
-    env("SIDECAR_EGRESS_PORT", "8081")
-    env("SIDECAR_ADMIN_PORT", "8082")
-    env("SIDECAR_HOST", "sidecar")
-    env("KAFKA_HOST","kafka")
-    env("KAFKA_PORT","9092")
-    env("APP_PORT", "9091")
-    env("APP_ID", "hydro-serving-kafka")
 
     label("SERVICE_ID", "-12")
     label("HS_SERVICE_MARKER", "HS_SERVICE_MARKER")

@@ -1,13 +1,13 @@
 package io.hydrosphere.serving.kafka.it.infrostructure
 
 import com.google.protobuf.any.Any
-import envoy.api.v2.{AggregatedDiscoveryServiceGrpc, DiscoveryRequest, DiscoveryResponse}
+import envoy.api.v2.{DiscoveryRequest, DiscoveryResponse}
+import envoy.service.discovery.v2.AggregatedDiscoveryServiceGrpc
 import io.grpc.stub.StreamObserver
 import io.grpc.{Server, ServerBuilder}
 import io.hydrosphere.serving.contract.model_signature.ModelSignature
-import io.hydrosphere.serving.kafka.predict.{Application, XDSApplicationUpdateService}
+import io.hydrosphere.serving.kafka.predict.Application
 import io.hydrosphere.serving.manager.grpc.applications.{ExecutionGraph, ExecutionStage, KafkaStreaming, Application => ProtoApplication}
-import io.hydrosphere.serving.tensorflow.api.model.ModelSpec
 import io.hydrosphere.serving.tensorflow.api.predict.{PredictRequest, PredictResponse}
 import io.hydrosphere.serving.tensorflow.api.prediction_service.PredictionServiceGrpc
 import org.apache.logging.log4j.scala.Logging

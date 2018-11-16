@@ -2,12 +2,12 @@ package io.hydrosphere.serving.kafka.stream
 
 import java.util.Properties
 
-import io.hydrosphere.serving.kafka.{AppAndStream, KeyAndStream, StreamFromApp}
 import io.hydrosphere.serving.kafka.config.Configuration
-import io.hydrosphere.serving.kafka.predict.{Application, UpdateService, Version}
+import io.hydrosphere.serving.kafka.predict.{Application, UpdateService}
+import io.hydrosphere.serving.kafka.{KeyAndStream, StreamFromApp}
 import org.apache.kafka.common.serialization.Serde
-import org.apache.kafka.streams.{KafkaStreams, StreamsBuilder, StreamsConfig}
 import org.apache.kafka.streams.kstream.KStream
+import org.apache.kafka.streams.{KafkaStreams, StreamsBuilder, StreamsConfig}
 
 import scala.collection._
 
