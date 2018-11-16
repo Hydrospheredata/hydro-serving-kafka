@@ -82,7 +82,7 @@ services:
       - "MANAGER_HOST=sidecar:8080"
 
   kafka_serving:
-    image: hydrosphere/serving-gateway-kafka:latest
+    image: hydrosphere/serving-kafka-gateway:latest
     container_name: serving-gateway-kafka
     networks:
       - extnet

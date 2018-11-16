@@ -35,15 +35,6 @@ dockerfile in docker := {
   new Dockerfile {
     from("openjdk:8u151-jre-alpine")
 
-    env("SIDECAR_INGRESS_PORT", "8080")
-    env("SIDECAR_EGRESS_PORT", "8081")
-    env("SIDECAR_ADMIN_PORT", "8082")
-    env("SIDECAR_HOST", "sidecar")
-    env("KAFKA_HOST","kafka")
-    env("KAFKA_PORT","9092")
-    env("APP_PORT", "9091")
-    env("APP_ID", "hydro-serving-kafka")
-
     label("SERVICE_ID", "-12")
     label("HS_SERVICE_MARKER", "HS_SERVICE_MARKER")
     label("DEPLOYMENT_TYPE", "APP")
@@ -61,6 +52,6 @@ dockerfile in docker := {
 imageNames in docker := Seq(
   ImageName(
     namespace = Some("hydrosphere"),
-    repository = s"serving-gateway-kafka"
+    repository = s"serving-kafka-gateway"
   )
 )
