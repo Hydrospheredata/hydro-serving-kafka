@@ -7,21 +7,21 @@ import pureconfig.generic.auto._
 
 
 final case class KafkaConfiguration(
-  advertisedHost: String,
-  advertisedPort: Int,
+  advertisedHost: String = "kafka",
+  advertisedPort: Int = 9092,
   shadowTopic: String = "shadow_topic"
 )
 final case class ApplicationConfig(
-  appId: String,
-  xdsSilentRestartSeconds: Int
+  appId: String = "hydro-serving-kafka",
 )
+
 final case class SidecarConfig(
-  host: String,
-  port: Int,
-  xdsSilentRestartSeconds: Int
+  host: String = "sidecar",
+  port: Int = 8080,
+  xdsSilentRestartSeconds: Int = 30
 )
 final case class GrpcConfig(
-  port: Int,
+  port: Int = 9091,
   maxMessageSize: Int = 512 * 1024 * 1024,
   deadline: Duration = 5.minutes
 )

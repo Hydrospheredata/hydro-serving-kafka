@@ -2,9 +2,7 @@
 
 [ -z "$JAVA_XMX" ] && JAVA_XMX="256M"
 
-[ -z "$SIDECAR_INGRESS_PORT" ] && SIDECAR_INGRESS_PORT="8080"
-[ -z "$SIDECAR_EGRESS_PORT" ] && SIDECAR_EGRESS_PORT="8081"
-[ -z "$SIDECAR_ADMIN_PORT" ] && SIDECAR_ADMIN_PORT="8082"
+[ -z "$SIDECAR_PORT" ] && SIDECAR_PORT="8080"
 [ -z "$SIDECAR_HOST" ] && SIDECAR_HOST="sidecar"
 
 [ -z "$KAFKA_HOST" ] && KAFKA_HOST="kafka"
@@ -22,9 +20,10 @@ echo "JAVA_OPTS=$JAVA_OPTS"
 if [ "$CUSTOM_CONFIG" = "" ]
 then
     echo "Custom config does not exist"
-    APP_OPTS="$APP_OPTS -Dsidecar.adminPort=$SIDECAR_ADMIN_PORT -Dsidecar.ingressPort=$SIDECAR_INGRESS_PORT -Dsidecar.egressPort=$SIDECAR_EGRESS_PORT -Dsidecar.host=$SIDECAR_HOST"
-    APP_OPTS="$APP_OPTS -Dkafka.advertisedHost=$KAFKA_HOST -Dkafka.advertisedPort=$KAFKA_PORT"
-    APP_OPTS="$APP_OPTS -Dapplication.appId=$APP_ID -Dapplication.port=$APP_PORT"
+    APP_OPTS="$APP_OPTS -Dsidecar.port=$SIDECAR_PORT -Dsidecar.host=$SIDECAR_HOST"
+    APP_OPTS="$APP_OPTS -Dkafka.advertised-host=$KAFKA_HOST -Dkafka.advertised-port=$KAFKA_PORT"
+    APP_OPTS="$APP_OPTS -Dapplication.app-id=$APP_ID"
+    APP_OPTS="$APP_OPTS -Dgrpc.port=$APP_PORT"
 
     echo "APP_OPTS=$APP_OPTS"
 
